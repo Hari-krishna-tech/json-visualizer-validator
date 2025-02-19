@@ -1,13 +1,85 @@
+import React, {useState} from 'react'
 import './App.css'
+import {Moon, Sun, Code2, RefreshCw, FileCode, FileJson, Menu} from 'lucide-react'
+import Navbar from './components/Navbar';
+import Editor from './components/Editor';
+import Converter from './components/Converter';
+import TypeGenerator from './components/TypeGenerator';
+import SchemaTools from './components/SchemaTools';
+
+type Tab = 'editor' | 'converter' | 'typeGenerator' | 'schema';
+
+
 
 
 function App() {
 
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('editor');
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle('dark');
+  }
+
+
+  const tabs = [
+    {id: 'editor', label: 'Editor', icon: Code2},
+    {id: 'converter', label: 'Converter', icon : RefreshCw},
+    {id: 'typeGenerator', label: 'Type Generator', icon: FileCode}, 
+    {id: 'schema', label: 'JSON Schema', icon: FileJson},
+  ] as const;
+
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'editor':
+        return <Editor />;
+      case 'converter':
+        return <Converter />;
+      case 'typeGenerator':
+        return <TypeGenerator />;
+      case 'schema':
+        return <SchemaTools />;
+      default:
+        return <Editor />;
+    }
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <h1 className="text-4xl font-bold text-blue-600">
-        React + Vite + Tailwind 4.0
-      </h1>
+    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <Navbar isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />
+        
+        <main className="container mx-auto px-4 py-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <nav className="flex space-x-2 px-4" aria-label="Tabs">
+                {tabs.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`
+                      py-4 px-6 inline-flex items-center gap-2 border-b-2 font-medium text-sm
+                      ${activeTab === id
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      }
+                    `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            
+            <div className="p-6">
+              {renderContent()}
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
