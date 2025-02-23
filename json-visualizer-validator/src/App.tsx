@@ -34,15 +34,15 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'editor':
-        return <Editor />;
+        return <Editor isDarkMode={isDarkMode} />;
       case 'converter':
-        return <Converter />;
+        return <Converter isDarkMode={isDarkMode} />;
       case 'typeGenerator':
-        return <TypeGenerator />;
+        return <TypeGenerator isDarkMode={isDarkMode} />;
       case 'schema':
-        return <SchemaTools />;
+        return <SchemaTools  isDarkMode={isDarkMode}/>;
       default:
-        return <Editor />;
+        return <Editor  isDarkMode={isDarkMode}/>;
     }
   }
 
