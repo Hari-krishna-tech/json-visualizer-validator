@@ -23,7 +23,7 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({isDarkMode}) => {
 
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Type Generator 
@@ -32,11 +32,12 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({isDarkMode}) => {
 
       <div className="grid grid-cols-2 gap-8">
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
           <select
             value={sourceFormat}
             onChange={(e) => setSourceFormat(e.target.value)} 
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200">
+            className="flex-grow px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300
+            dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500">
             <option value="json">JSON</option>
             <option value="yaml">YAML</option>
             <option value="xml">XML</option>
@@ -44,12 +45,12 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({isDarkMode}) => {
           </select>
           <button 
             onClick={loadFromEditor}
-            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
             >
             Load from Editor
           </button>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
+          <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 h-[500px]">
           <MonacoEditor
               height="100%"
               language={sourceFormat === 'csv' ? 'plaintext' : sourceFormat}
@@ -64,17 +65,18 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({isDarkMode}) => {
           <select 
             value={targetFormat}
             onChange={(e) => setTargetFormat(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200">
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500">
             <option value="typescript">Typescript</option>
             <option value="java">Java</option>
             <option value="golang">Golang</option>
             <option value="python">Python</option>
           </select>
 
-          <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
-            <div className="absolute top-4 right-4">
-              <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <Copy onClick={copyToClipboard} className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 h-[500px]">
+            <div className="absolute top-4 right-4 z-10">
+              <button className="p-2 bg-gray-400 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors" 
+               title="Copy to clipboard">
+                <Copy onClick={copyToClipboard} className="w-5 h-5 text-gray-200 dark:text-gray-200" />
               </button>
             </div>
             <MonacoEditor

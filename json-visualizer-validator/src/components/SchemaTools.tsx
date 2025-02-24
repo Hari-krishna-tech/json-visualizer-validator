@@ -10,7 +10,6 @@ interface SchemaToolsProps {
 }
 
 const SchemaTools: React.FC<SchemaToolsProps> = ({isDarkMode}) => {
-    const [activeTab, setActiveTab] = useState<'generator' | 'validator'>('generator');
     const [sourceContent, setSourceContent] = useState('');
     const [targetContent, setTargetContent] = useState('');
 
@@ -21,10 +20,10 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({isDarkMode}) => {
 
 
     return (
-             <div className="space-y-4">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-         Schema Generator 
+         Schema Generator (JSON)
         </h2>
       </div>
 
@@ -44,9 +43,9 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({isDarkMode}) => {
         <div className="space-y-4">
 
           <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
-            <div className="absolute top-4 right-4">
-              <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <Copy onClick={copyToClipboard} className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <div className="absolute top-4 right-4 z-10">
+              <button className="p-2 bg-gray-400 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                <Copy onClick={copyToClipboard} className="w-5 h-5 text-gray-200 dark:text-gray-200" />
               </button>
             </div>
             <MonacoEditor

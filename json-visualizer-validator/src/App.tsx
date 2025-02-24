@@ -1,4 +1,4 @@
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import './App.css'
 import {Moon, Sun, Code2, RefreshCw, FileCode, FileJson, Menu} from 'lucide-react'
 import Navbar from './components/Navbar';
@@ -30,6 +30,21 @@ function App() {
     {id: 'schema', label: 'JSON Schema', icon: FileJson},
   ] as const;
 
+  useEffect(() => {
+    const handleKeyDown = (event: any) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          event.preventDefault(); // Prevent browser save action
+          console.log("Ctrl + S detected, but prevented the default behavior.");
+          // Call your custom save function here
+      }
+  };
+
+  document.addEventListener("keydown", handleKeyDown);
+  
+  return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+  };
+  }, [])
 
   const renderContent = () => {
     switch (activeTab) {
