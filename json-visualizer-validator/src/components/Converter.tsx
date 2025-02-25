@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import { ArrowRight, Copy } from "lucide-react";
 import MonacoEditor from '@monaco-editor/react';
 import { useEditorStore } from "../store/editorStore";
+import * as wasm from "lib";
 
 
 interface ConverterProps {
@@ -16,6 +17,19 @@ const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
 
     const {content: globalContent} = useEditorStore();
 
+    const handleSourceContentChange = (value: string) => {
+      setSourceContent(value); // Update the state with the new value
+      if(sourceFormat === 'json') {
+         if(targetFormat === 'yaml') {
+            const result = wasm.json_to_yaml(value);
+            console.log(result);
+            setTargetContent(result);
+         } else if(targetFormat === 'xml') {
+          const result = wasm.json_to_xml(value);
+          setTargetContent(result);
+         }
+      }
+    }
 
     const loadFromEditor = () => {
       setSourceContent(globalContent);
@@ -58,7 +72,7 @@ const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
               height="100%"
               language={sourceFormat === "csv" ? "plaintext" : sourceFormat}
               value={sourceContent}
-              onChange={(value) => setSourceContent(value || "")}
+              onChange={(value) => handleSourceContentChange(value || "") }
               theme={isDarkMode ? "vs-dark" : "vs"}
             />
           </div>
