@@ -1,45 +1,116 @@
-import React, {useState} from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowRight, Copy } from "lucide-react";
-import MonacoEditor from '@monaco-editor/react';
+import MonacoEditor from "@monaco-editor/react";
 import { useEditorStore } from "../store/editorStore";
-import * as wasm from "lib";
+import * as wasmModule from "lib";
 
+interface WasmModule {
+  json_to_yaml: (json: string) => string;
+  json_to_xml: (json: string) => string;
+  json_to_csv: (json: string) => string;
+  yaml_to_json: (yaml: string) => string;
+  yaml_to_xml: (yaml: string) => string;
+  yaml_to_csv: (yaml: string) => string;
+}
 
 interface ConverterProps {
-
-    isDarkMode: boolean;
+  isDarkMode: boolean;
 }
-const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
-    const [sourceContent, setSourceContent] = useState('');
-    const [targetContent, setTargetContent] = useState('');
-    const [sourceFormat, setSourceFormat] = useState('json');
-    const [targetFormat, setTargetFormat] = useState('yaml');
+const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
+  const [sourceContent, setSourceContent] = useState("");
+  const [targetContent, setTargetContent] = useState("");
+  const [sourceFormat, setSourceFormat] = useState("json");
+  const [targetFormat, setTargetFormat] = useState("yaml");
+  const [wasm, setWasm] = useState<WasmModule | null>(null);
+  const [isloading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const {content: globalContent} = useEditorStore();
+  const { content: globalContent } = useEditorStore();
 
-    const handleSourceContentChange = (value: string) => {
-      setSourceContent(value); // Update the state with the new value
-      if(sourceFormat === 'json') {
-         if(targetFormat === 'yaml') {
-            const result = wasm.json_to_yaml(value);
-            console.log(result);
-            setTargetContent(result);
-         } else if(targetFormat === 'xml') {
-          const result = wasm.json_to_xml(value);
-          setTargetContent(result);
-         }
+  useEffect(() => {
+    async function initWasm() {
+      try {
+        // Check if wasmModule has an init function
+        if (typeof wasmModule.default === "function") {
+          await wasmModule.default();
+          setWasm(wasmModule as unknown as WasmModule);
+        } else {
+          // If no init function, assume it's already initialized
+          setWasm(wasmModule as unknown as WasmModule);
+        }
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Failed to initialize WASM module:", err);
+        setError("Failed to load conversion tools. Please refresh the page.");
+        setIsLoading(false);
       }
     }
 
-    const loadFromEditor = () => {
-      setSourceContent(globalContent);
-    }
+    initWasm();
+  }, []);
 
-    const copyToClipboard = () => {
-      navigator.clipboard.writeText(targetContent);
+  const handleSourceContentChange = (value: string) => {
+    setSourceContent(value); // Update the state with the new value
+    if (!wasm) {
+      console.log("WASM not loaded");
+      return;
     }
+    try {
+      if (sourceFormat === "json") {
+        if (targetFormat === "yaml") {
+          console.log(value);
+          const result = wasm.json_to_yaml(value);
+          console.log(result);
+          setTargetContent(result);
+        } else if (targetFormat === "xml") {
+          const result = wasm.json_to_xml(value);
+          setTargetContent(result);
+        } else if (targetFormat === "csv") {
+          // Convert JSON to CSV
+          console.log("JSON to CSV");
+          const result = wasm.json_to_csv(value);
+          setTargetContent(result);
+        }
+      } else if (sourceFormat === "yaml") {
+        if (targetFormat === "json") {
+          console.log(value);
+          const result = wasm.yaml_to_json(value);
+          console.log(result);
+          setTargetContent(result);
+        } else if (targetFormat === "xml") {
+          const result = wasm.yaml_to_xml(value);
+          setTargetContent(result);
+        } else if (targetFormat === "csv") {
+          const result = wasm.yaml_to_csv(value);
+          setTargetContent(result);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      setTargetContent(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const loadFromEditor = () => {
+    setSourceContent(globalContent);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(targetContent);
+  };
+
+  if (isloading) {
     return (
-      <div className="space-y-6">
+      <div className="flex justify-center items-center h-64">
+        Loading conversion tools...
+      </div>
+    );
+  }
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+  return (
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Format Converter
@@ -72,7 +143,7 @@ const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
               height="100%"
               language={sourceFormat === "csv" ? "plaintext" : sourceFormat}
               value={sourceContent}
-              onChange={(value) => handleSourceContentChange(value || "") }
+              onChange={(value) => handleSourceContentChange(value || "")}
               theme={isDarkMode ? "vs-dark" : "vs"}
             />
           </div>
@@ -114,7 +185,7 @@ const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
         </div>
       </div>
     </div>
-      /*
+    /*
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -182,7 +253,7 @@ const Converter: React.FC<ConverterProps> = ({isDarkMode}) => {
       </div>
     </div>
     */
-    )
-}
+  );
+};
 
 export default Converter;
