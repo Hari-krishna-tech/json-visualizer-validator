@@ -11,6 +11,12 @@ interface WasmModule {
   yaml_to_json: (yaml: string) => string;
   yaml_to_xml: (yaml: string) => string;
   yaml_to_csv: (yaml: string) => string;
+  xml_to_json: (xml: string) => string;
+  xml_to_yaml: (xml: string) => string;
+  xml_to_csv: (xml: string) => string;
+  csv_to_json: (csv: string) => string;
+  csv_to_yaml: (csv: string) => string;
+  csv_to_xml: (csv: string) => string;
 }
 
 interface ConverterProps {
@@ -49,6 +55,20 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
     initWasm();
   }, []);
 
+  useEffect(() => {
+    handleSourceContentChange(sourceContent);
+  }, [sourceFormat, targetFormat]);
+
+  const handleSourceFormatChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSourceFormat(e.target.value);
+  };
+  const handleTargetFormatChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setTargetFormat(e.target.value);
+  };
   const handleSourceContentChange = (value: string) => {
     setSourceContent(value); // Update the state with the new value
     if (!wasm) {
@@ -70,6 +90,8 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
           console.log("JSON to CSV");
           const result = wasm.json_to_csv(value);
           setTargetContent(result);
+        } else {
+          setTargetContent(value);
         }
       } else if (sourceFormat === "yaml") {
         if (targetFormat === "json") {
@@ -83,6 +105,34 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
         } else if (targetFormat === "csv") {
           const result = wasm.yaml_to_csv(value);
           setTargetContent(result);
+        } else {
+          setTargetContent(value);
+        }
+      } else if (sourceFormat === "xml") {
+        if (targetFormat === "json") {
+          const result = wasm.xml_to_json(value);
+          setTargetContent(result);
+        } else if (targetFormat === "yaml") {
+          const result = wasm.xml_to_yaml(value);
+          setTargetContent(result);
+        } else if (targetFormat === "csv") {
+          const result = wasm.xml_to_csv(value);
+          setTargetContent(result);
+        } else {
+          setTargetContent(value);
+        }
+      } else if (sourceFormat === "csv") {
+        if (targetFormat === "json") {
+          const result = wasm.csv_to_json(value);
+          setTargetContent(result);
+        } else if (targetFormat === "yaml") {
+          const result = wasm.csv_to_yaml(value);
+          setTargetContent(result);
+        } else if (targetFormat === "xml") {
+          const result = wasm.csv_to_xml(value);
+          setTargetContent(result);
+        } else {
+          setTargetContent(value);
         }
       }
     } catch (e) {
@@ -123,7 +173,7 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
           <div className="flex items-center space-x-4">
             <select
               value={sourceFormat}
-              onChange={(e) => setSourceFormat(e.target.value)}
+              onChange={handleSourceFormatChange}
               className="flex-grow px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
             >
               <option value="json">JSON</option>
@@ -153,7 +203,7 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
         <div className="space-y-4">
           <select
             value={targetFormat}
-            onChange={(e) => setTargetFormat(e.target.value)}
+            onChange={handleTargetFormatChange}
             className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
           >
             <option value="yaml">YAML</option>

@@ -549,3 +549,706 @@ fn escape_csv_field_yml(field: &str) -> String {
     }
 }
 
+// XML to others below 
+
+
+// Simple XML Node representation for our parser
+struct XmlNode {
+    name: String,
+    attributes: HashMap<String, String>,
+    text: String,
+    children: Vec<XmlNode>,
+}
+
+// XML to JSON conversion
+#[wasm_bindgen]
+pub fn xml_to_json(xml_str: &str) -> Result<String, JsValue> {
+    let parsed = parse_xml(xml_str)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    let json_string = xml_node_to_json(&parsed)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    Ok(json_string)
+}
+
+// XML to YAML conversion
+#[wasm_bindgen]
+pub fn xml_to_yaml(xml_str: &str) -> Result<String, JsValue> {
+    let parsed = parse_xml(xml_str)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    let yaml_string = xml_node_to_yaml(&parsed)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    Ok(yaml_string)
+}
+
+// XML to CSV conversion
+#[wasm_bindgen]
+pub fn xml_to_csv(xml_str: &str) -> Result<String, JsValue> {
+    let parsed = parse_xml(xml_str)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    let csv_string = xml_node_to_csv(&parsed)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    Ok(csv_string)
+}
+
+// Custom XML parser implementation
+fn parse_xml(xml_str: &str) -> Result<XmlNode, String> {
+    // This is a simplified XML parser for illustration
+    // In a real implementation, you would need more robust parsing logic
+    
+    // Remove XML declaration if present
+    let mut content = xml_str.trim();
+    if content.starts_with("<?xml") {
+        if let Some(pos) = content.find("?>") {
+            content = &content[pos + 2..].trim();
+        }
+    }
+    
+    // Parse the root element
+    parse_element(content)
+}
+
+fn parse_element(s: &str) -> Result<XmlNode, String> {
+    // Check for empty or invalid input
+    if s.is_empty() {
+        return Err("Empty XML string".to_string());
+    }
+    
+    // Start tag must begin with '<'
+    if !s.starts_with('<') {
+        return Err("Invalid XML: expected '<'".to_string());
+    }
+    
+    // Find the end of the opening tag
+    let mut i = 1;
+    while i < s.len() && !s.chars().nth(i).unwrap_or(' ').is_whitespace() && s.chars().nth(i).unwrap_or(' ') != '>' {
+        i += 1;
+    }
+    
+    // Extract tag name
+    let tag_name = &s[1..i];
+    
+    // Find where the opening tag ends
+    let mut j = i;
+    let mut in_quote = false;
+    let mut quote_char = ' ';
+    
+    while j < s.len() {
+        let c = s.chars().nth(j).unwrap_or(' ');
+        
+        if c == '"' || c == '\'' {
+            if !in_quote {
+                in_quote = true;
+                quote_char = c;
+            } else if c == quote_char {
+                in_quote = false;
+            }
+        } else if c == '>' && !in_quote {
+            break;
+        }
+        
+        j += 1;
+    }
+    
+    if j >= s.len() {
+        return Err("Invalid XML: opening tag not closed".to_string());
+    }
+    
+    // Parse attributes
+    let attr_str = &s[i..j];
+    let attributes = parse_attributes(attr_str);
+    
+    // Check if it's a self-closing tag
+    let is_self_closing = s.chars().nth(j - 1).unwrap_or(' ') == '/';
+    
+    let mut node = XmlNode {
+        name: tag_name.to_string(),
+        attributes,
+        text: String::new(),
+        children: Vec::new(),
+    };
+    
+    if is_self_closing {
+        return Ok(node);
+    }
+    
+    // Find the matching closing tag
+    let content_start = j + 1;
+    let closing_tag = format!("</{}>", tag_name);
+    
+    if let Some(content_end) = s[content_start..].find(&closing_tag) {
+        let content = &s[content_start..content_start + content_end];
+        
+        // Parse child elements
+        let mut remaining = content;
+        
+        while let Some(child_start) = remaining.find('<') {
+            // Check if it's a comment, CDATA, or processing instruction
+            if remaining[child_start..].starts_with("<!--") 
+                || remaining[child_start..].starts_with("<![CDATA[")
+                || remaining[child_start..].starts_with("<?") {
+                // Skip these special elements for now
+                let skip_marker = if remaining[child_start..].starts_with("<!--") {
+                    "-->"
+                } else if remaining[child_start..].starts_with("<![CDATA[") {
+                    "]]>"
+                } else {
+                    "?>"
+                };
+                
+                if let Some(end_pos) = remaining[child_start..].find(skip_marker) {
+                    let end = child_start + end_pos + skip_marker.len();
+                    remaining = &remaining[end..];
+                    continue;
+                } else {
+                    return Err("Unclosed special element".to_string());
+                }
+            }
+            
+            // Extract text content before this child
+            let text_content = remaining[..child_start].trim();
+            if !text_content.is_empty() {
+                node.text.push_str(text_content);
+            }
+            
+            // Check if this is a closing tag
+            if remaining[child_start + 1..].starts_with('/') {
+                // This is a closing tag, which should be handled by the parent call
+                break;
+            }
+            
+            // Find where this child element ends
+            let mut child_xml = &remaining[child_start..];
+            let mut depth = 1;
+            let mut pos = 1;
+            
+            while depth > 0 && pos < child_xml.len() {
+                if child_xml[pos..].starts_with('<') {
+                    if child_xml[pos + 1..].starts_with('/') {
+
+                        if let Some(close_end) = child_xml[pos..].find('>') {
+                        depth -= 1;
+                        // skip past this entire closing tag
+                        pos += close_end + 1;
+                        continue;
+                        }
+                    } else if !child_xml[pos..].starts_with("<!--") 
+                        && !child_xml[pos..].starts_with("<![CDATA[")
+                        && !child_xml[pos..].starts_with("<?") {
+                        // Regular opening tag
+                        depth += 1;
+                    }
+                }
+                pos += 1;
+            }
+            
+            // Parse the child element
+            let child_element = parse_element(&child_xml[..pos])?;
+            node.children.push(child_element);
+            
+            // Move past this child element
+            remaining = &remaining[child_start + pos..];
+        }
+        
+        // Add any remaining text
+        let final_text = remaining.trim();
+        if !final_text.is_empty() {
+            node.text.push_str(final_text);
+        }
+        
+        Ok(node)
+    } else {
+        Err(format!("Closing tag not found for {}", tag_name))
+    }
+}
+
+fn parse_attributes(s: &str) -> HashMap<String, String> {
+    let mut attributes = HashMap::new();
+    let mut i = 0;
+    
+    while i < s.len() {
+        // Skip whitespace
+        while i < s.len() && s.chars().nth(i).unwrap_or(' ').is_whitespace() {
+            i += 1;
+        }
+        
+        if i >= s.len() {
+            break;
+        }
+        
+        // Find attribute name
+        let name_start = i;
+        while i < s.len() && s.chars().nth(i).unwrap_or(' ') != '=' {
+            i += 1;
+        }
+        
+        if i >= s.len() {
+            break;
+        }
+        
+        let name = s[name_start..i].trim();
+        
+        // Skip the equals sign and find the quote
+        i += 1;
+        while i < s.len() && s.chars().nth(i).unwrap_or(' ') != '"' && s.chars().nth(i).unwrap_or(' ') != '\'' {
+            i += 1;
+        }
+        
+        if i >= s.len() {
+            break;
+        }
+        
+        let quote = s.chars().nth(i).unwrap_or('"');
+        i += 1;
+        
+        // Find the end of the attribute value
+        let value_start = i;
+        while i < s.len() && s.chars().nth(i).unwrap_or(' ') != quote {
+            i += 1;
+        }
+        
+        if i >= s.len() {
+            break;
+        }
+        
+        let value = s[value_start..i].to_string();
+        attributes.insert(name.to_string(), value);
+        
+        i += 1;
+    }
+    
+    attributes
+}
+
+// Convert XML node to JSON string
+fn xml_node_to_json(node: &XmlNode) -> Result<String, String> {
+    let mut result = String::from("{");
+    
+    // Add tag name
+    result.push_str(&format!("\"_name\": \"{}\"", node.name));
+    
+    // Add attributes
+    if !node.attributes.is_empty() {
+        result.push_str(", \"_attributes\": {");
+        let mut first = true;
+        for (key, value) in &node.attributes {
+            if !first {
+                result.push_str(", ");
+            }
+            result.push_str(&format!("\"{}\": \"{}\"", key, escape_json_string(value)));
+            first = false;
+        }
+        result.push_str("}");
+    }
+    
+    // Add text content if any
+    if !node.text.is_empty() {
+        result.push_str(&format!(", \"_text\": \"{}\"", escape_json_string(&node.text)));
+    }
+    
+    // Add children
+    if !node.children.is_empty() {
+        // Group children by tag name
+        let mut child_map: HashMap<String, Vec<&XmlNode>> = HashMap::new();
+        for child in &node.children {
+            child_map.entry(child.name.clone())
+                .or_insert_with(Vec::new)
+                .push(child);
+        }
+        
+        for (child_name, children) in child_map {
+            if children.len() == 1 {
+                // Single child
+                result.push_str(&format!(", \"{}\": ", child_name));
+                let child_json = xml_node_to_json(children[0])?;
+                result.push_str(&child_json);
+            } else {
+                // Multiple children with same name become an array
+                result.push_str(&format!(", \"{}\": [", child_name));
+                for (i, child) in children.iter().enumerate() {
+                    if i > 0 {
+                        result.push_str(", ");
+                    }
+                    let child_json = xml_node_to_json(child)?;
+                    result.push_str(&child_json);
+                }
+                result.push_str("]");
+            }
+        }
+    }
+    
+    result.push_str("}");
+    Ok(result)
+}
+
+// Convert XML node to YAML string
+fn xml_node_to_yaml(node: &XmlNode) -> Result<String, String> {
+    // We'll implement a simple YAML serializer
+    let mut result = String::new();
+    yaml_serialize_node(node, &mut result, 0)?;
+    Ok(result)
+}
+
+fn yaml_serialize_node(node: &XmlNode, result: &mut String, indent: usize) -> Result<(), String> {
+    let indent_str = " ".repeat(indent);
+    
+    // Add tag name
+    result.push_str(&format!("{}{}:\n", indent_str, node.name));
+    
+    let child_indent = indent + 2;
+    let child_indent_str = " ".repeat(child_indent);
+    
+    // Add attributes
+    if !node.attributes.is_empty() {
+        result.push_str(&format!("{}attributes:\n", child_indent_str));
+        let attr_indent = child_indent + 2;
+        let attr_indent_str = " ".repeat(attr_indent);
+        
+        for (key, value) in &node.attributes {
+            result.push_str(&format!("{}{}: {}\n", attr_indent_str, key, escape_yaml_string(value)));
+        }
+    }
+    
+    // Add text content if any
+    if !node.text.is_empty() {
+        result.push_str(&format!("{}text: {}\n", child_indent_str, escape_yaml_string(&node.text)));
+    }
+    
+    // Add children
+    if !node.children.is_empty() {
+        result.push_str(&format!("{}children:\n", child_indent_str));
+        
+        for child in &node.children {
+            yaml_serialize_node(child, result, child_indent + 2)?;
+        }
+    }
+    
+    Ok(())
+}
+
+// Convert XML node to CSV string
+fn xml_node_to_csv(node: &XmlNode) -> Result<String, String> {
+    // For CSV conversion, we need to extract tabular data
+    // This is a very simplified approach that works best for XML representing tables
+    
+    let mut headers = Vec::new();
+    let mut records = Vec::new();
+    
+    // Try to extract table-like data
+    extract_csv_data(node, &mut headers, &mut records)?;
+    
+    if headers.is_empty() {
+        return Err("Could not extract tabular data from XML".to_string());
+    }
+    
+    // Generate CSV string
+    let mut result = String::new();
+    
+    // Add headers
+    for (i, header) in headers.iter().enumerate() {
+        if i > 0 {
+            result.push(',');
+        }
+        result.push_str(&escape_csv_field(header));
+    }
+    result.push('\n');
+    
+    // Add records
+    for record in records {
+        for (i, field) in record.iter().enumerate() {
+            if i > 0 {
+                result.push(',');
+            }
+            result.push_str(&escape_csv_field(field));
+        }
+        result.push('\n');
+    }
+    
+    Ok(result)
+}
+
+fn extract_csv_data(node: &XmlNode, headers: &mut Vec<String>, records: &mut Vec<Vec<String>>) -> Result<(), String> {
+    // This is a simplified approach - we assume:
+    // 1. The node contains child elements that represent rows
+    // 2. Each row contains child elements that represent cells
+    // 3. The cell element names will be used as column headers
+    
+    // Try to identify row elements - assume they are immediate children with the same name
+    let mut child_counts: HashMap<String, usize> = HashMap::new();
+    
+    for child in &node.children {
+        *child_counts.entry(child.name.clone()).or_insert(0) += 1;
+    }
+    
+    // Find the child element name that appears most frequently - likely the row elements
+    let mut max_count = 0;
+    let mut row_element_name = String::new();
+    
+    for (name, count) in child_counts {
+        if count > max_count {
+            max_count = count;
+            row_element_name = name;
+        }
+    }
+    
+    if max_count <= 1 {
+        // No repeating elements found, try a different approach
+        // If node has text directly, treat it as a single record
+        if !node.text.trim().is_empty() {
+            headers.push("value".to_string());
+            records.push(vec![node.text.trim().to_string()]);
+            return Ok(());
+        }
+        
+        // Otherwise, treat each child as a column
+        for child in &node.children {
+            headers.push(child.name.clone());
+            if records.is_empty() {
+                records.push(Vec::new());
+            }
+            records[0].push(child.text.trim().to_string());
+        }
+        
+        return Ok(());
+    }
+    
+    // Process row elements
+    let row_elements: Vec<&XmlNode> = node.children.iter()
+        .filter(|child| child.name == row_element_name)
+        .collect();
+    
+    // Extract column headers from the first row
+    if !row_elements.is_empty() {
+        let first_row = &row_elements[0];
+        
+        // Use child element names as headers
+        for cell in &first_row.children {
+            headers.push(cell.name.clone());
+        }
+        
+        // If no headers found, try attributes
+        if headers.is_empty() {
+            for (attr_name, _) in &first_row.attributes {
+                headers.push(attr_name.clone());
+            }
+        }
+        
+        // Process each row
+        for row in &row_elements {
+            let mut record = Vec::new();
+            
+            // Handle cell elements
+            if !headers.is_empty() && headers[0] != "value" {
+                // Use indices instead of consuming iterator
+                for i in 0..headers.len() {
+                    let header = &headers[i];
+                    // Find the cell with matching tag name
+                    let cell_value = row.children.iter()
+                        .find(|child| child.name == *header)
+                        .map(|child| child.text.trim().to_string())
+                        .unwrap_or_default();
+                    
+                    record.push(cell_value);
+                }
+            } else {
+                // Handle attribute-based rows
+                // Use indices instead of consuming iterator
+                for i in 0..headers.len() {
+                    let header = &headers[i];
+                    let attr_value = row.attributes.get(header)
+                        .cloned()
+                        .unwrap_or_default();
+                    
+                    record.push(attr_value);
+                }
+            }
+            
+            if !record.is_empty() {
+                records.push(record);
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+// Helper functions for escaping special characters in different formats
+fn escape_json_string(s: &str) -> String {
+    let mut result = String::with_capacity(s.len() + 2);
+    
+    for c in s.chars() {
+        match c {
+            '"' => result.push_str("\\\""),
+            '\\' => result.push_str("\\\\"),
+            '\n' => result.push_str("\\n"),
+            '\r' => result.push_str("\\r"),
+            '\t' => result.push_str("\\t"),
+            '\u{0008}' => result.push_str("\\b"),
+            '\u{000C}' => result.push_str("\\f"),
+            _ => result.push(c),
+        }
+    }
+    
+    result
+}
+
+fn escape_yaml_string(s: &str) -> String {
+    // Simple YAML escaping, add quotes if needed
+    if s.contains('\n') || s.contains(':') || s.contains('"') {
+        format!("\"{}\"", s.replace('"', "\\\""))
+    } else if s.is_empty() {
+        "\"\"".to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+
+// CSV to other 
+
+#[wasm_bindgen]
+pub fn csv_to_json(csv_str: &str) -> Result<String, JsValue> {
+    // Parse CSV
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(csv_str.as_bytes());
+    
+    // Get headers
+    let headers = match reader.headers() {
+        Ok(headers) => headers.clone(),
+        Err(e) => return Err(JsValue::from_str(&e.to_string())),
+    };
+    
+    // Create a Vec to store our rows
+    let mut rows = Vec::new();
+    
+    // Iterate through records
+    for result in reader.records() {
+        let record = match result {
+            Ok(record) => record,
+            Err(e) => return Err(JsValue::from_str(&e.to_string())),
+        };
+        
+        // Create a map for this row
+        let mut row_map = std::collections::BTreeMap::new();
+        
+        // Add fields to map
+        for (i, field) in record.iter().enumerate() {
+            if i < headers.len() {
+                row_map.insert(headers[i].to_string(), field.to_string());
+            }
+        }
+        
+        // Add row to rows
+        rows.push(row_map);
+    }
+    
+    // Convert to JSON
+    match serde_json::to_string_pretty(&rows) {
+        Ok(json) => Ok(json),
+        Err(e) => Err(JsValue::from_str(&e.to_string())),
+    }
+}
+
+#[wasm_bindgen]
+pub fn csv_to_yaml(csv_str: &str) -> Result<String, JsValue> {
+    // First convert CSV to a data structure
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(csv_str.as_bytes());
+    
+    // Get headers
+    let headers = match reader.headers() {
+        Ok(headers) => headers.clone(),
+        Err(e) => return Err(JsValue::from_str(&e.to_string())),
+    };
+    
+    // Create a Vec to store our rows
+    let mut rows = Vec::new();
+    
+    // Iterate through records
+    for result in reader.records() {
+        let record = match result {
+            Ok(record) => record,
+            Err(e) => return Err(JsValue::from_str(&e.to_string())),
+        };
+        
+        // Create a map for this row
+        let mut row_map = std::collections::BTreeMap::new();
+        
+        // Add fields to map
+        for (i, field) in record.iter().enumerate() {
+            if i < headers.len() {
+                row_map.insert(headers[i].to_string(), field.to_string());
+            }
+        }
+        
+        // Add row to rows
+        rows.push(row_map);
+    }
+    
+    // Convert to YAML
+    match serde_yaml::to_string(&rows) {
+        Ok(yaml) => Ok(yaml),
+        Err(e) => Err(JsValue::from_str(&e.to_string())),
+    }
+}
+
+#[wasm_bindgen]
+pub fn csv_to_xml(csv_str: &str) -> Result<String, JsValue> {
+    // Parse CSV
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(csv_str.as_bytes());
+    
+    // Get headers
+    let headers = match reader.headers() {
+        Ok(headers) => headers.clone(),
+        Err(e) => return Err(JsValue::from_str(&e.to_string())),
+    };
+    
+    // Start building XML output
+    let mut xml_output = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>\n");
+    
+    // Iterate through records
+    for result in reader.records() {
+        let record = match result {
+            Ok(record) => record,
+            Err(e) => return Err(JsValue::from_str(&e.to_string())),
+        };
+        
+        // Add row element
+        xml_output.push_str("  <row>\n");
+        
+        // Add fields to row
+        for (i, field) in record.iter().enumerate() {
+            if i < headers.len() {
+                let field_name = escape_xml(&headers[i]);
+                let field_value = escape_xml(field);
+                xml_output.push_str(&format!("    <{}>{}</{}>\n", field_name, field_value, field_name));
+            }
+        }
+        
+        // Close row element
+        xml_output.push_str("  </row>\n");
+    }
+    
+    // Finish XML document
+    xml_output.push_str("</root>");
+    
+    Ok(xml_output)
+}
+
+// Helper function to escape XML special characters
+fn escape_xml(s: &str) -> String {
+    s.replace("&", "&amp;")
+     .replace("<", "&lt;")
+     .replace(">", "&gt;")
+     .replace("\"", "&quot;")
+     .replace("'", "&apos;")
+}
