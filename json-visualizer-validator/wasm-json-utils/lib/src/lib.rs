@@ -5,6 +5,7 @@ use quick_xml::se::to_string as to_xml;
 use csv:: Writer;
 use std::collections::HashMap;
 use std::collections::HashSet;
+mod types;
 
 // export to js
 #[wasm_bindgen]
@@ -1252,3 +1253,4 @@ fn escape_xml(s: &str) -> String {
      .replace("\"", "&quot;")
      .replace("'", "&apos;")
 }
+
