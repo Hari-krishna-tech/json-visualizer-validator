@@ -120,6 +120,8 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
             wasm.process_json(JSON.stringify(value))
           );
           if (activeView === "tree") {
+            setActiveView("tree");
+            console.log(result);
             //*///*///*///*///*///*///*///renderTree(result);
           } else {
             //renderGraph(result);
@@ -235,70 +237,7 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
       .attr("y", -15);
   };
 */
-  const renderGraph = (data: JsonOutput) => {
-    const container = d3Container.current;
-    if (!container) return;
 
-    // Clear previous SVG
-    d3.select(container).selectAll("*").remove();
-
-    // Convert string IDs to object references
-    const nodes: JsonNode[] = data.nodes.map((n) => ({
-      ...n,
-    }));
-
-    const links = data.links.map((l) => ({
-      source: nodes.find((n) => n.id === l.source)!,
-      target: nodes.find((n) => n.id === l.target)!,
-    }));
-
-    const simulation = d3
-      .forceSimulation<JsonNode>(nodes)
-      .force("charge", d3.forceManyBody().strength(-1000))
-      .force(
-        "link",
-        d3
-          .forceLink<JsonNode, d3.SimulationLinkDatum<JsonNode>>(links)
-          .id((d: JsonNode) => d.id)
-      )
-      .force("center", d3.forceCenter(400, 300));
-
-    const svg = d3
-      .select(container)
-      .append("svg")
-      .attr("width", 800)
-      .attr("height", 600);
-
-    // Draw links
-    const link = svg
-      .append("g")
-      .attr("stroke", "#999")
-      .selectAll("line")
-      .data(links)
-      .enter()
-      .append("line")
-      .attr("stroke-width", 1);
-
-    // Draw nodes
-    const node = svg
-      .append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .enter()
-      .append("circle")
-      .attr("r", 10)
-      .attr("fill", "#2196F3");
-
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (d) => d.source.x ?? 0)
-        .attr("y1", (d) => d.source.y ?? 0)
-        .attr("x2", (d) => d.target.x ?? 0)
-        .attr("y2", (d) => d.target.y ?? 0);
-
-      node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
-    });
-  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[600px]">

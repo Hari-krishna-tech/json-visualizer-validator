@@ -55,6 +55,7 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({ isDarkMode }) => {
     if (wasm) {
       try {
         setTargetContent(wasm.json_to_json_schema(content || "") || "");
+        setError(null);
       } catch (err) {
         console.error("Failed to convert JSON to JSON Schema:", err);
         setError("Failed to convert JSON to JSON Schema.");
@@ -114,6 +115,11 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({ isDarkMode }) => {
               theme={isDarkMode ? "vs-dark" : "vs"}
               options={{ readOnly: true }}
             />
+            {error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-10 text-red-700 dark:bg-red-600 dark:bg-opacity-10 dark:text-red-300">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>
