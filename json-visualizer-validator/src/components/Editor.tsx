@@ -5,7 +5,6 @@ import formatXML from "xml-formatter";
 import YAML from "yaml";
 import Papa from "papaparse";
 import * as wasmModule from "lib";
-import * as d3 from "d3";
 import JSONVisualizer from "./JsonVisualizer";
 
 interface WasmModule {
@@ -32,33 +31,32 @@ interface EditorProps {
 }
 
 */
-interface Node {
-  id: string;
-  label: string;
-  value: string;
-  depth: number;
-  parent: string | null;
-  is_leaf: boolean;
-  x?: number;
-  y?: number;
-}
+// interface Node {
+//   id: string;
+//   label: string;
+//   value: string;
+//   depth: number;
+//   parent: string | null;
+//   is_leaf: boolean;
+//   x?: number;
+//   y?: number;
+// }
 
-interface Link {
-  source: string;
-  target: string;
-}
+// interface Link {
+//   source: string;
+//   target: string;
+// }
 
-interface GraphData {
-  nodes: Node[];
-  links: Link[];
-}
+// interface GraphData {
+//   nodes: Node[];
+//   links: Link[];
+// }
 
 const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
   const { content, setContent, format, setFormat } = useEditorStore();
   const [error, setError] = useState("");
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const d3Container = React.useRef(null);
   const [activeView, setActiveView] = useState<"tree" | "graph">("graph");
   const [graphData, setGraphData] = useState<any | null>(null);
 
