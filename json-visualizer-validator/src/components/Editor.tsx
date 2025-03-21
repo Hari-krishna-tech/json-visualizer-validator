@@ -6,6 +6,7 @@ import YAML from "yaml";
 import Papa from "papaparse";
 import * as wasmModule from "lib";
 import * as d3 from "d3";
+import JSONVisualizer from "./JsonVisualizer";
 
 interface WasmModule {
   process_json: (json: string) => string;
@@ -31,23 +32,25 @@ interface EditorProps {
 }
 
 */
-interface JsonNode extends d3.SimulationNodeDatum {
+interface Node {
   id: string;
   label: string;
   value: string;
   depth: number;
   parent: string | null;
   is_leaf: boolean;
+  x?: number;
+  y?: number;
 }
 
-interface JsonLink {
+interface Link {
   source: string;
   target: string;
 }
 
-interface JsonOutput {
-  nodes: JsonNode[];
-  links: JsonLink[];
+interface GraphData {
+  nodes: Node[];
+  links: Link[];
 }
 
 const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
@@ -56,7 +59,8 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const d3Container = React.useRef(null);
-  const [activeView, setActiveView] = useState<"tree" | "graph">("tree");
+  const [activeView, setActiveView] = useState<"tree" | "graph">("graph");
+  const [graphData, setGraphData] = useState<any | null>(null);
 
   const formatContent = () => {
     let formatted = "";
@@ -113,43 +117,46 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
   const handleContentChange = (value: string | undefined) => {
     if (value) {
       setContent(value);
+      console.log(value);
 
       try {
         if (wasm) {
-          const result: JsonOutput = JSON.parse(
-            wasm.process_json(JSON.stringify(value))
-          );
+          console.log("wasm", wasm);
+          // const result: GraphData =
+          const result: any = wasm.process_json(value);
           if (activeView === "tree") {
             setActiveView("tree");
-            console.log(result);
+            // console.log(result);
             //*///*///*///*///*///*///*///renderTree(result);
           } else {
-            //renderGraph(result);
+            // //renderGraph(result);
+            console.log(result);
+            setGraphData(result);
           }
         }
       } catch (error) {
         console.error("Error parsing content:", error);
         error instanceof Error && setError(error.message);
-        clearAndShowError(
+        /*clearAndShowError(
           error instanceof Error ? error.message : "Invalid JSON"
-        );
+        );*/
       }
     }
   };
 
   // Clear visualization area and show error message
-  const clearAndShowError = (message: string) => {
-    if (!d3Container.current) return;
+  // const clearAndShowError = (message: string) => {
+  //   if (!d3Container.current) return;
 
-    d3.select(d3Container.current).selectAll("*").remove();
+  //   d3.select(d3Container.current).selectAll("*").remove();
 
-    d3.select(d3Container.current)
-      .append("div")
-      .attr("class", "error-message")
-      .style("color", "red")
-      .style("padding", "20px")
-      .text(`Error: ${message}`);
-  };
+  //   d3.select(d3Container.current)
+  //     .append("div")
+  //     .attr("class", "error-message")
+  //     .style("color", "red")
+  //     .style("padding", "20px")
+  //     .text(`Error: ${message}`);
+  // };
 
   // Toggle between tree and graph views
   /*  const toggleView = () => {
@@ -274,10 +281,9 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 h-[600px]">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+      <div className="grid grid-cols-3 gap-4 h-[600px]">
+        <div className="col-span-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
           <div className="font-mono text-sm h-full">
-            {/* Editor will be mounted here */}
             <MonacoEditor
               height="100%"
               language={format === "csv" ? "plaintext" : format}
@@ -309,16 +315,21 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
           </div>
         </div>
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="font-mono text-sm h-full text-gray-900 dark:text-gray-100">
-            {/* Visualization will be shown here */}
-            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-              {content ? (
-                <div ref={d3Container} className="w-full h-full"></div>
-              ) : (
-                "Visualization will appear here"
-              )}
-            </div>
+        <div className="col-span-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900  h-full overflow-hidden">
+          <div className="h-full w-full relative">
+            {graphData ? (
+              <div className="absolute inset-0">
+                <JSONVisualizer
+                  key={isDarkMode ? "dark" : "light"}
+                  data={graphData}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+                Visualization will appear here
+              </div>
+            )}
           </div>
         </div>
       </div>

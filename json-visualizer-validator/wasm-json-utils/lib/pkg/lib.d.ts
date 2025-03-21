@@ -29,7 +29,13 @@ export function xml_to_csv(xml_str: string): string;
 export function csv_to_json(csv_str: string): string;
 export function csv_to_yaml(csv_str: string): string;
 export function csv_to_xml(csv_str: string): string;
-export function process_json(json_str: string): string;
+/**
+ * The exported wasm function that processes JSON.
+ * It accepts a JSON string and returns a JsValue containing the tree structure.
+ * This tree structure should be simple enough to pass directly to d3.js for creating visualizations.
+ */
+export function process_json_tree(json_data: string): any;
+export function process_json(json_str: string): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -64,12 +70,13 @@ export interface InitOutput {
   readonly csv_to_json: (a: number, b: number) => [number, number, number, number];
   readonly csv_to_yaml: (a: number, b: number) => [number, number, number, number];
   readonly csv_to_xml: (a: number, b: number) => [number, number, number, number];
-  readonly process_json: (a: number, b: number) => [number, number, number, number];
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+  readonly process_json_tree: (a: number, b: number) => [number, number, number];
+  readonly process_json: (a: number, b: number) => [number, number, number];
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbindgen_export_3: WebAssembly.Table;
+  readonly __wbindgen_export_2: WebAssembly.Table;
   readonly __externref_table_dealloc: (a: number) => void;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_start: () => void;
 }
 
