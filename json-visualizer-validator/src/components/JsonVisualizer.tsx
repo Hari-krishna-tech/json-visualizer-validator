@@ -17,10 +17,10 @@ interface Link {
   target: string;
 }
 
-interface GraphData {
-  nodes: Node[];
-  links: Link[];
-}
+// interface GraphData {
+//   nodes: Node[];
+//   links: Link[];
+// }
 
 interface JSONVisualizerProps {
   data: any;
