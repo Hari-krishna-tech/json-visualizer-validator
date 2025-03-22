@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <!-- Background circle -->
+    <circle cx="60" cy="60" r="50" fill="#4A90E2" opacity="0.1"/>
+    
+    <!-- Stylized JSON brackets -->
+    <path d="M40,30 C30,30 25,40 25,50 L25,70 C25,80 20,85 15,85"
+                fill="none" stroke="#4A90E2" stroke-width="4" stroke-linecap="round"/>
+    
+    <path d="M80,30 C90,30 95,40 95,50 L95,70 C95,80 100,85 105,85"
+                fill="none" stroke="#4A90E2" stroke-width="4" stroke-linecap="round"/>
+    
+    <!-- Central dot representing data -->
+    <circle cx="60" cy="60" r="8" fill="#4A90E2"/>
+    
+    <!-- Connection lines -->
+    <line x1="45" y1="60" x2="75" y2="60" stroke="#4A90E2" stroke-width="2" opacity="0.5"/>
+    <line x1="60" y1="45" x2="60" y2="75" stroke="#4A90E2" stroke-width="2" opacity="0.5"/>
+</svg>
