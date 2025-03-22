@@ -325,7 +325,7 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
           } else {
             if (format === "json") {
               const result: any = wasm.process_json(value);
-              console.log("after process_json " + result);
+              console.log("after process_json " + JSON.stringify(result));
               setGraphData(result);
             } else if (format === "yaml") {
               const result: any = wasm.process_yaml_graph(value);

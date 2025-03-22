@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use js_sys::JSON;
 use std::collections::HashMap;
 use serde_yaml::Value as YamlValue;
-
+use wasm_bindgen::JsError;
 
 // use serde_json::{json, Value as Value};
 
@@ -71,6 +71,9 @@ fn convert_to_d3_format(value: &Value, name: &str) -> Value {
 
 
 
+// use serde::{Deserialize, Serialize};
+// use serde_json::Value;
+// use wasm_bindgen::prelude::*;
 
 // Define the data structures
 #[derive(Serialize, Deserialize, Clone)]
@@ -96,16 +99,16 @@ pub struct ProcessedData {
 }
 
 #[wasm_bindgen]
-pub fn process_json(json_str: &str) -> Result<JsValue, JsError> {
-    // Parse the JSON string
+pub fn process_json(json_str: &str) -> Result<String, JsError> {
+    // Parse the JSON string into a serde_json::Value
     let json_value: Value = serde_json::from_str(json_str)
         .map_err(|e| JsError::new(&format!("Failed to parse JSON: {}", e)))?;
-    
+
     let mut nodes = Vec::new();
     let mut links = Vec::new();
     let mut next_id = 1;
-    
-    // Process the root element
+
+    // Process the root element recursively
     process_value(
         &json_value,
         None,
@@ -115,13 +118,15 @@ pub fn process_json(json_str: &str) -> Result<JsValue, JsError> {
         &mut next_id,
         None,
     );
-    
+
     // Create the processed data structure
     let processed_data = ProcessedData { nodes, links };
-    
-    // Serialize to JsValue
-    Ok(serde_wasm_bindgen::to_value(&processed_data)
-        .map_err(|e| JsError::new(&format!("Failed to serialize: {}", e)))?)
+
+    // Serialize processed_data into a JSON string
+    let serialized_str = serde_json::to_string(&processed_data)
+        .map_err(|e| JsError::new(&format!("Failed to serialize: {}", e)))?;
+
+    Ok(serialized_str)
 }
 
 fn process_value(
@@ -135,15 +140,14 @@ fn process_value(
 ) -> String {
     let id = next_id.to_string();
     *next_id += 1;
-    
+
     match value {
         Value::Object(map) => {
-            // Calculate number of items
             let item_count = map.len();
             let label = key.unwrap_or("Object").to_string();
             let value_text = format!("{} items", item_count);
-            
-            // Create node for this object
+
+            // Create a node for this object
             let node = JsonNode {
                 id: id.clone(),
                 label,
@@ -153,7 +157,7 @@ fn process_value(
                 is_leaf: false,
             };
             nodes.push(node);
-            
+
             // Create link to parent if exists
             if let Some(parent) = &parent_id {
                 links.push(JsonLink {
@@ -161,10 +165,10 @@ fn process_value(
                     target: id.clone(),
                 });
             }
-            
+
             // Process each property in the object
             for (prop_key, prop_value) in map {
-                let child_id = process_value(
+                process_value(
                     prop_value,
                     Some(id.clone()),
                     depth + 1,
@@ -174,16 +178,15 @@ fn process_value(
                     Some(prop_key),
                 );
             }
-            
+
             id
-        },
+        }
         Value::Array(arr) => {
-            // Calculate number of items
             let item_count = arr.len();
             let label = key.unwrap_or("Array").to_string();
             let value_text = format!("{}", item_count);
-            
-            // Create node for this array
+
+            // Create a node for this array
             let node = JsonNode {
                 id: id.clone(),
                 label,
@@ -193,7 +196,7 @@ fn process_value(
                 is_leaf: false,
             };
             nodes.push(node);
-            
+
             // Create link to parent if exists
             if let Some(parent) = &parent_id {
                 links.push(JsonLink {
@@ -201,10 +204,10 @@ fn process_value(
                     target: id.clone(),
                 });
             }
-            
+
             // Process each element in the array
             for (i, item) in arr.iter().enumerate() {
-                let child_id = process_value(
+                process_value(
                     item,
                     Some(id.clone()),
                     depth + 1,
@@ -214,13 +217,13 @@ fn process_value(
                     Some(&i.to_string()),
                 );
             }
-            
+
             id
-        },
+        }
         // Handle primitive values (string, number, boolean, null)
         _ => {
             let (label, value_text) = format_primitive(key, value);
-            
+
             // Create node for this primitive value
             let node = JsonNode {
                 id: id.clone(),
@@ -231,7 +234,7 @@ fn process_value(
                 is_leaf: true,
             };
             nodes.push(node);
-            
+
             // Create link to parent if exists
             if let Some(parent) = &parent_id {
                 links.push(JsonLink {
@@ -239,7 +242,7 @@ fn process_value(
                     target: id.clone(),
                 });
             }
-            
+
             id
         }
     }
@@ -247,7 +250,7 @@ fn process_value(
 
 fn format_primitive(key: Option<&str>, value: &Value) -> (String, String) {
     let label = key.unwrap_or("Value").to_string();
-    
+
     let value_text = match value {
         Value::String(s) => format!("{}", s),
         Value::Number(n) => {
@@ -258,12 +261,11 @@ fn format_primitive(key: Option<&str>, value: &Value) -> (String, String) {
             } else {
                 format!("{}", n.as_f64().unwrap())
             }
-        },
+        }
         Value::Bool(b) => format!("{}", b),
         Value::Null => "null".to_string(),
-        _ => "".to_string(), // This shouldn't happen
+        _ => "".to_string(), // This case shouldn't happen for primitives.
     };
-    
+
     (label, value_text)
 }
-
