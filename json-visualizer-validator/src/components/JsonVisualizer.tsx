@@ -22,14 +22,34 @@ interface JSONVisualizerProps {
   isDarkMode: boolean;
 }
 const isGraphFormat = (data: any): boolean => {
-  return data?.nodes && data?.links;
+  console.log(data);
+  try {
+    const curData = JSON.parse(data);
+
+    if (data?.nodes && data?.links) {
+      return true;
+    } else if (curData.nodes.length > 0 && curData.links.length > 0) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
 };
 const JSONVisualizer: React.FC<JSONVisualizerProps> = ({
   data,
   isDarkMode,
 }) => {
-  if (!isGraphFormat(data)) {
+  try {
+    if (!isGraphFormat(data)) {
+      return <div className="text-red-500">Invalid data format</div>;
+    }
+  } catch (e) {
     return <div className="text-red-500">Invalid data format</div>;
+  }
+  console.log("here ", data);
+  if (typeof data === "string") {
+    data = JSON.parse(data);
   }
   const d3Container = useRef<HTMLDivElement>(null);
 

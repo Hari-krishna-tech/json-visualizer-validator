@@ -1,7 +1,23 @@
 import create from "zustand";
 import { persist } from "zustand/middleware";
 import { FormatType, TypeGeneratorType } from "../types/global";
+interface DarkModeState {
+  isDarkMode: boolean;
+  setIsDarkMode: (isDarkMode: boolean) => void;
+}
 
+export const useDarkModeStore = create(
+  persist<DarkModeState>(
+    (set) => ({
+      isDarkMode: false,
+      setIsDarkMode: (isDarkMode: boolean) =>
+        set(() => ({ isDarkMode: isDarkMode })),
+    }),
+    {
+      name: "dark-mode-storage",
+    }
+  )
+);
 interface EditorState {
   content: string;
   setContent: (content: string) => void;

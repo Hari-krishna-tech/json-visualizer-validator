@@ -32,6 +32,12 @@ export const csv_to_yaml: (a: number, b: number) => [number, number, number, num
 export const csv_to_xml: (a: number, b: number) => [number, number, number, number];
 export const process_json_tree: (a: number, b: number) => [number, number, number, number];
 export const process_json: (a: number, b: number) => [number, number, number];
+export const process_yaml_graph: (a: number, b: number) => [number, number, number, number];
+export const process_yaml_tree: (a: number, b: number) => [number, number, number, number];
+export const process_xml_graph: (a: number, b: number) => [number, number, number, number];
+export const process_xml_tree: (a: number, b: number) => [number, number, number, number];
+export const process_csv_graph: (a: number, b: number) => [number, number, number, number];
+export const process_csv_tree: (a: number, b: number) => [number, number, number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_export_2: WebAssembly.Table;

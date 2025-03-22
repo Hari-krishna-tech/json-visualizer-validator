@@ -4,16 +4,15 @@
 - [x] correct Load from editor error
 - [x] Correct editor error handling
 - [x] Add a option to switch between tree and graph, make it switch between them
-- [ ] parse for xml, yml, csv
-- [ ] add tree and graph option for that also
-- [ ] add a button to create visualization
-- [ ] make the architecture better to handle
-- [ ] store dark or light mode in global state, and make it presist
-- [ ] make copy better (indicate copy)
+- [x] parse for xml, yml, csv
+- [x] add tree and graph option for that also
+- [x] add a button to create visualization
+- [x] make the architecture better to handle
+- [x] store dark or light mode in global state, and make it presist
+- [x] make copy better (indicate copy)
 - [ ] can i make wasm global for improved performance
 - [ ] can we store the zoom out position of the graph
-- [ ] export visualization as png 
-
+- [ ] export visualization as png
 
 # JSON Visualizer and Validator
 

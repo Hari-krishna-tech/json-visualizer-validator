@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Copy } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
@@ -103,11 +103,24 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({ isDarkMode }) => {
         <div className="space-y-4">
           <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
             <div className="absolute top-4 right-4 z-10">
-              <button className="p-2 bg-gray-400 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
-                <Copy
-                  onClick={copyToClipboard}
-                  className="w-5 h-5 text-gray-200 dark:text-gray-200"
-                />
+              <button
+                className="p-2 bg-gray-400 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
+                title="Copy to clipboard"
+                onClick={() => {
+                  copyToClipboard();
+                  const icon = document.querySelector(".copy-icon");
+                  if (icon instanceof SVGElement) {
+                    icon.innerHTML = '<path d="M20 6L9 17l-5-5"/>';
+                    icon.setAttribute("stroke-width", "3");
+                    setTimeout(() => {
+                      icon.innerHTML =
+                        '<path d="M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.912 4.895 3 6 3h8c1.105 0 2 .912 2 2.036v1.866m-6 .17h8c1.105 0 2 .91 2 2.035v10.857C20 21.088 19.105 22 18 22h-8c-1.105 0-2-.911-2-2.036V9.107c0-1.124.895-2.036 2-2.036z"/>';
+                      icon.setAttribute("stroke-width", "2");
+                    }, 1000);
+                  }
+                }}
+              >
+                <Copy className="w-5 h-5 text-gray-200 dark:text-gray-200 copy-icon" />
               </button>
             </div>
             <MonacoEditor

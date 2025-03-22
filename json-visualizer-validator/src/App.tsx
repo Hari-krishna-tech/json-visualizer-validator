@@ -6,16 +6,22 @@ import Editor from "./components/Editor";
 import Converter from "./components/Converter";
 import TypeGenerator from "./components/TypeGenerator";
 import SchemaTools from "./components/SchemaTools";
+import { useDarkModeStore } from "./store/editorStore";
 
 type Tab = "editor" | "converter" | "typeGenerator" | "schema";
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, setIsDarkMode } = useDarkModeStore();
+  // const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("editor");
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
+    if (!isDarkMode) {
+      document.documentElement.classList.toggle("dark");
+    } else {
+      document.documentElement.classList.toggle("dark");
+    }
   };
 
   const tabs = [
@@ -39,6 +45,12 @@ function App() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
+  }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    }
   }, []);
 
   const renderContent = () => {

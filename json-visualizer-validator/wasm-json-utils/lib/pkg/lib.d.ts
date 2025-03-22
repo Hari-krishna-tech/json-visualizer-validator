@@ -31,6 +31,61 @@ export function csv_to_yaml(csv_str: string): string;
 export function csv_to_xml(csv_str: string): string;
 export function process_json_tree(json_str: string): string;
 export function process_json(json_str: string): any;
+/**
+ * Exposed WebAssembly function for processing YAML into a graph format.
+ *
+ * It parses the YAML string and then recursively builds a list of nodes and
+ * links. The returned JSON follows the format:
+ *
+ * {
+ *    "nodes": [ { "id": "...", "label": "...", "value": "...", "depth": ..., "parent": "..."?, "is_leaf": ... }, ... ],
+ *    "links": [ { "source": "...", "target": "..." }, ... ]
+ * }
+ */
+export function process_yaml_graph(yaml_str: string): string;
+/**
+ * Exposed WebAssembly function for processing YAML into a tree format.
+ *
+ * It parses the YAML string and converts it into a hierarchical tree where
+ * each node has a "name" and, if a leaf, a "value". Composite values get a
+ * "children" array. The returned JSON for an object looks like:
+ *
+ * {
+ *    "name": "root",
+ *    "children": [
+ *       {"name": "category", "value": "\"Home Goods\""},
+ *       ...,
+ *       {"name": "specifications", "children": [ ... ] }
+ *    ]
+ * }
+ */
+export function process_yaml_tree(yaml_str: string): string;
+/**
+ * Exports a function to process XML into the graph format.
+ * Returns a JSON string representing the graph or an error if the XML is invalid.
+ */
+export function process_xml_graph(xml: string): string;
+/**
+ * Exports a function to process XML into the tree format.
+ * Returns a JSON string representing the tree or an error if the XML is invalid.
+ */
+export function process_xml_tree(xml: string): string;
+/**
+ * Process the CSV string and return a JSON string for graph visualization.
+ *
+ * This function:
+ * 1. Parses the CSV (using the first record).
+ * 2. Converts the record into a JSON object (attempting a JSON parse on each field).
+ * 3. Recursively builds the graph representation.
+ */
+export function process_csv_graph(csv: string): string;
+/**
+ * Process the CSV string and return a JSON string for tree visualization.
+ *
+ * This function behaves like `process_csv_graph` except that
+ * it builds a nested tree structure instead.
+ */
+export function process_csv_tree(csv: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -67,6 +122,12 @@ export interface InitOutput {
   readonly csv_to_xml: (a: number, b: number) => [number, number, number, number];
   readonly process_json_tree: (a: number, b: number) => [number, number, number, number];
   readonly process_json: (a: number, b: number) => [number, number, number];
+  readonly process_yaml_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_yaml_tree: (a: number, b: number) => [number, number, number, number];
+  readonly process_xml_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_xml_tree: (a: number, b: number) => [number, number, number, number];
+  readonly process_csv_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_csv_tree: (a: number, b: number) => [number, number, number, number];
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;

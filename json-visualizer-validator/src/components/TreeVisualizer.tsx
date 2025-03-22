@@ -97,7 +97,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           "d",
           d3
             .linkHorizontal<any, any>()
-            .x((d) => 0)
+            .x(() => 0)
             .y((d) => d.x)
         )
         .transition()
@@ -210,7 +210,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         d3.select(this)
           .select("circle")
           .attr("r", nodeRadius)
-          .attr("fill", (d) =>
+          .attr("fill", () =>
             d3.select(this).classed("node--internal")
               ? nodeFillColor
               : isDarkMode

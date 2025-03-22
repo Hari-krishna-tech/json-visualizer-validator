@@ -6,12 +6,18 @@ import YAML from "yaml";
 import Papa from "papaparse";
 import * as wasmModule from "lib";
 import JSONVisualizer from "./JsonVisualizer";
-import { tree } from "d3";
+// import { tree } from "d3";
 import TreeVisualizer from "./TreeVisualizer";
 
 interface WasmModule {
   process_json: (json: string) => string;
   process_json_tree: (json: string) => string;
+  process_yaml_graph: (yaml: string) => string;
+  process_yaml_tree: (yaml: string) => string;
+  process_xml_graph: (xml: string) => string;
+  process_xml_tree: (xml: string) => string;
+  process_csv_graph: (csv: string) => string;
+  process_csv_tree: (csv: string) => string;
 }
 interface EditorProps {
   isDarkMode: boolean;
@@ -299,13 +305,42 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
           console.log("wasm", wasm);
           setError("");
           if (activeView === "tree") {
-            const result: any = wasm.process_json_tree(value);
-            setGraphData(result);
-            console.log(result);
+            if (format === "json") {
+              const result: any = wasm.process_json_tree(value);
+              setGraphData(result);
+              console.log(result);
+            } else if (format === "yaml") {
+              const result: any = wasm.process_yaml_tree(value);
+              setGraphData(result);
+              console.log(result);
+            } else if (format === "xml") {
+              const result: any = wasm.process_xml_tree(value);
+              setGraphData(result);
+              console.log(result);
+            } else if (format === "csv") {
+              const result: any = wasm.process_csv_tree(value);
+              setGraphData(result);
+              console.log(result);
+            }
           } else {
-            const result: any = wasm.process_json(value);
-            console.log("after process_json " + result);
-            setGraphData(result);
+            if (format === "json") {
+              const result: any = wasm.process_json(value);
+              console.log("after process_json " + result);
+              setGraphData(result);
+            } else if (format === "yaml") {
+              const result: any = wasm.process_yaml_graph(value);
+              console.log("after process_yaml_graph " + result);
+              setGraphData(result);
+            } else if (format === "xml") {
+              const result: any = wasm.process_xml_graph(value);
+              console.log("after process_xml_graph " + result);
+              setGraphData(result);
+            } else if (format == "csv") {
+              const result: any = wasm.process_csv_graph(value);
+              console.log("after process_csv_graph " + result);
+              setGraphData(result);
+            }
+
             // setActiveView("graph");
           }
         } else {

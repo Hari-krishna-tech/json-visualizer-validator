@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 mod types;
 mod visualization;
+mod yaml_visualization;
+mod xml_visualization;
+mod csv_visualization;
 
 // export to js
 #[wasm_bindgen]
