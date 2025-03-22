@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Copy } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
-import { useEditorStore } from "../store/editorStore";
+import { useEditorStore, useTypeGeneratorStore } from "../store/editorStore";
 import * as wasmModule from "lib";
 
 interface WasmModule {
@@ -27,10 +27,20 @@ interface TypeGeneratorProps {
   isDarkMode: boolean;
 }
 const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
-  const [sourceContent, setSourceContent] = useState<string | undefined>("");
-  const [targetContent, setTargetContent] = useState("");
-  const [sourceFormat, setSourceFormat] = useState("json");
-  const [targetFormat, setTargetFormat] = useState("typescript");
+  const {
+    sourceContent,
+    setSourceContent,
+    sourceFormat,
+    setSourceFormat,
+    targetContent,
+    targetFormat,
+    setTargetContent,
+    setTargetFormat,
+  } = useTypeGeneratorStore();
+  // const [sourceContent, setSourceContent] = useState<string | undefined>("");
+  // const [targetContent, setTargetContent] = useState("");
+  // const [sourceFormat, setSourceFormat] = useState("json");
+  // const [targetFormat, setTargetFormat] = useState("typescript");
   const { content: globalContent } = useEditorStore();
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +48,7 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
 
   const loadFromEditor = () => {
     setSourceContent(globalContent);
+    handleSourceContentChange(globalContent);
   };
 
   const copyToClipboard = () => {
@@ -47,13 +58,13 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
   const handleSourceFormatChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setSourceFormat(e.target.value);
+    setSourceFormat(e.target.value as "json" | "yaml" | "xml" | "csv");
   };
 
   const handleTargetFormatChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setTargetFormat(e.target.value);
+    setTargetFormat(e.target.value as "typescript" | "java" | "go" | "python");
   };
 
   // load wasm module
@@ -185,8 +196,13 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
             <select
               value={sourceFormat}
               onChange={handleSourceFormatChange}
-              className="flex-grow px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300
-            dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+              className="flex-grow px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-100"
             >
               <option value="json">JSON</option>
               <option value="yaml">YAML</option>
@@ -215,7 +231,13 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
           <select
             value={targetFormat}
             onChange={handleTargetFormatChange}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-10"
           >
             <option value="typescript">Typescript</option>
             <option value="java">Java</option>
@@ -237,7 +259,7 @@ const TypeGenerator: React.FC<TypeGeneratorProps> = ({ isDarkMode }) => {
             </div>
             <MonacoEditor
               height="100%"
-              language={targetFormat === "csv" ? "plaintext" : targetFormat}
+              language={targetFormat}
               value={targetContent}
               onChange={(value) => setTargetContent(value || "")}
               theme={isDarkMode ? "vs-dark" : "vs"}

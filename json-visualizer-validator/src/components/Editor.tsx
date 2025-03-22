@@ -6,14 +6,205 @@ import YAML from "yaml";
 import Papa from "papaparse";
 import * as wasmModule from "lib";
 import JSONVisualizer from "./JsonVisualizer";
+import { tree } from "d3";
+import TreeVisualizer from "./TreeVisualizer";
 
 interface WasmModule {
   process_json: (json: string) => string;
+  process_json_tree: (json: string) => string;
 }
 interface EditorProps {
   isDarkMode: boolean;
 }
 /*
+for tree 
+{
+  "person": {
+    "name": "Jane",
+    "details": {
+      "age": 28,
+      "occupation": "Engineer"
+    }
+  }
+}
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "person",
+      "children": [
+        {
+          "name": "name",
+          "value": "\"Jane\""
+        },
+        {
+          "name": "details",
+          "children": [
+            {
+              "name": "age",
+              "value": "28"
+            },
+            {
+              "name": "occupation",
+              "value": "\"Engineer\""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+{
+  "company": {
+    "name": "Tech Solutions",
+    "founded": 2010,
+    "departments": [
+      {
+        "name": "Engineering",
+        "employees": [
+          {"id": 101, "name": "Alice", "skills": ["JavaScript", "Rust", "WebAssembly"]},
+          {"id": 102, "name": "Bob", "skills": ["Python", "Data Science"]}
+        ]
+      },
+      {
+        "name": "Marketing",
+        "employees": [
+          {"id": 201, "name": "Charlie", "specialization": "Content"}
+        ]
+      }
+    ],
+    "active": true
+  }
+}
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "company",
+      "children": [
+        {
+          "name": "name",
+          "value": "\"Tech Solutions\""
+        },
+        {
+          "name": "founded",
+          "value": "2010"
+        },
+        {
+          "name": "departments",
+          "children": [
+            {
+              "name": "departments[0]",
+              "children": [
+                {
+                  "name": "name",
+                  "value": "\"Engineering\""
+                },
+                {
+                  "name": "employees",
+                  "children": [
+                    {
+                      "name": "employees[0]",
+                      "children": [
+                        {
+                          "name": "id",
+                          "value": "101"
+                        },
+                        {
+                          "name": "name",
+                          "value": "\"Alice\""
+                        },
+                        {
+                          "name": "skills",
+                          "children": [
+                            {
+                              "name": "skills[0]",
+                              "value": "\"JavaScript\""
+                            },
+                            {
+                              "name": "skills[1]",
+                              "value": "\"Rust\""
+                            },
+                            {
+                              "name": "skills[2]",
+                              "value": "\"WebAssembly\""
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "name": "employees[1]",
+                      "children": [
+                        {
+                          "name": "id",
+                          "value": "102"
+                        },
+                        {
+                          "name": "name",
+                          "value": "\"Bob\""
+                        },
+                        {
+                          "name": "skills",
+                          "children": [
+                            {
+                              "name": "skills[0]",
+                              "value": "\"Python\""
+                            },
+                            {
+                              "name": "skills[1]",
+                              "value": "\"Data Science\""
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "departments[1]",
+              "children": [
+                {
+                  "name": "name",
+                  "value": "\"Marketing\""
+                },
+                {
+                  "name": "employees",
+                  "children": [
+                    {
+                      "name": "employees[0]",
+                      "children": [
+                        {
+                          "name": "id",
+                          "value": "201"
+                        },
+                        {
+                          "name": "name",
+                          "value": "\"Charlie\""
+                        },
+                        {
+                          "name": "specialization",
+                          "value": "\"Content\""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "active",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}
+
 {
   nodes: [
     { id: "1", label: "Object", value: "4 items", depth: 0, parent: null, is_leaf: false },
@@ -29,35 +220,15 @@ interface EditorProps {
     // ... more links
   ]
 }
-
 */
-// interface Node {
-//   id: string;
-//   label: string;
-//   value: string;
-//   depth: number;
-//   parent: string | null;
-//   is_leaf: boolean;
-//   x?: number;
-//   y?: number;
-// }
-
-// interface Link {
-//   source: string;
-//   target: string;
-// }
-
-// interface GraphData {
-//   nodes: Node[];
-//   links: Link[];
-// }
 
 const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
-  const { content, setContent, format, setFormat } = useEditorStore();
+  const { content, setContent, format, setFormat, activeView, setActiveView } =
+    useEditorStore();
   const [error, setError] = useState("");
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeView, setActiveView] = useState<"tree" | "graph">("graph");
+  //const [activeView, setActiveView] = useState<"tree" | "graph">("graph");
   const [graphData, setGraphData] = useState<any | null>(null);
 
   const formatContent = () => {
@@ -84,6 +255,7 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
           formatted = content;
       }
       setContent(formatted);
+      setError("");
     } catch (error) {
       console.error("Error parsing content:", error);
       error instanceof Error && setError(error.message);
@@ -102,6 +274,7 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
           setWasm(wasmModule as unknown as WasmModule);
         }
         setIsLoading(false);
+        // handleContentChange(content);
       } catch (err) {
         console.error("Failed to initialize WASM module:", err);
         setError("Failed to load conversion tools. Please refresh the page.");
@@ -112,6 +285,10 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
     initWasm();
   }, []);
 
+  useEffect(() => {
+    handleContentChange(content);
+  }, [wasm, activeView]);
+
   const handleContentChange = (value: string | undefined) => {
     if (value) {
       setContent(value);
@@ -120,129 +297,53 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
       try {
         if (wasm) {
           console.log("wasm", wasm);
-          // const result: GraphData =
-          const result: any = wasm.process_json(value);
+          setError("");
           if (activeView === "tree") {
-            setActiveView("tree");
-            // console.log(result);
-            //*///*///*///*///*///*///*///renderTree(result);
-          } else {
-            // //renderGraph(result);
-            console.log(result);
+            const result: any = wasm.process_json_tree(value);
             setGraphData(result);
+            console.log(result);
+          } else {
+            const result: any = wasm.process_json(value);
+            console.log("after process_json " + result);
+            setGraphData(result);
+            // setActiveView("graph");
           }
+        } else {
+          console.log(wasm === null);
         }
       } catch (error) {
         console.error("Error parsing content:", error);
         error instanceof Error && setError(error.message);
-        /*clearAndShowError(
-          error instanceof Error ? error.message : "Invalid JSON"
-        );*/
       }
     }
   };
 
-  // Clear visualization area and show error message
-  // const clearAndShowError = (message: string) => {
-  //   if (!d3Container.current) return;
-
-  //   d3.select(d3Container.current).selectAll("*").remove();
-
-  //   d3.select(d3Container.current)
-  //     .append("div")
-  //     .attr("class", "error-message")
-  //     .style("color", "red")
-  //     .style("padding", "20px")
-  //     .text(`Error: ${message}`);
-  // };
-
-  // Toggle between tree and graph views
-  /*  const toggleView = () => {
-    const newView = activeView === "tree" ? "graph" : "tree";
-    setActiveView(newView);
-
-    if (content && wasm) {
-      try {
-        const result: JsonOutput = JSON.parse(wasm.process_json(content));
-
-        if (newView === "tree") {
-          // renderTree(result);
-        } else {
-          // renderForceGraph(result);
-        }
-      } catch (err) {
-        console.error("Error toggling view:", err);
-        clearAndShowError("Failed to update visualization");
+  // check format is correct
+  /*
+  const isGraphFormat = (graphDataForChecking: string) => {
+    try {
+      const graphData = JSON.parse(graphDataForChecking);
+      console.log("inside isGraphFormat", graphData);
+      if (!graphData.nodes || !graphData.links) {
+        return false;
       }
+      return true;
+    } catch (error) {
+      return false;
     }
   };
-*/
 
-  /* const renderTree = (data: JsonOutput) => {
-    const container = d3Container.current;
-    if (!container) return;
-
-    // Clear previous SVG
-    d3.select(container).selectAll("*").remove();
-
-    const svg = d3
-      .select(container)
-      .append("svg")
-      .attr("width", 800)
-      .attr("height", 600);
-
-    // Convert flat data to hierarchy
-    const rootNode = data.nodes.find((n) => n.parent === null);
-    if (!rootNode) return;
-
-    const stratify = d3
-      .stratify<JsonNode>()
-      .id((d) => d.id)
-      .parentId((d) => d.parent || "");
-
-    const root = stratify(data.nodes);
-
-    const treeLayout = d3
-      .tree<JsonNode>()
-      .size([600, 400])
-      .separation((a, b) => (a.parent === b.parent ? 1 : 2))(root);
-
-    // Draw links
-    svg
-      .append("g")
-      .attr("fill", "none")
-      .attr("stroke", "#555")
-      .selectAll("path")
-      .data(treeLayout.links())
-      .enter()
-      .append("path")
-      .attr(
-        "d",
-        d3
-          .linkVertical<d3.HierarchyLink<JsonNode>, unknown>()
-          .x((d) => (d as any).x)
-          .y((d) => (d as any).y)
-      );
-
-    // Draw nodes
-    const nodes = svg
-      .append("g")
-      .selectAll("g")
-      .data(root.descendants())
-      .enter()
-      .append("g")
-      .attr("transform", (d) => `translate(${d.x},${d.y})`);
-
-    nodes
-      .append("rect")
-      .attr("width", 100)
-      .attr("height", 30)
-      .attr("fill", "#4CAF50")
-      .attr("x", -50) // Center the rectangle
-      .attr("y", -15);
-  };
-*/
-
+  const isTreeFormat = (graphDataForChecking: string) => {
+    try {
+      const graphData = JSON.parse(graphDataForChecking);
+      if (!graphData.name || !graphData.children) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }; */
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[600px]">
@@ -259,11 +360,31 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
         </h2>
         <div className="flex space-x-2">
           <select
+            value={activeView}
+            onChange={(e) => setActiveView(e.target.value as "tree" | "graph")}
+            className="px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-10"
+          >
+            <option value="tree">Tree</option>
+            <option value="graph">Graph</option>
+          </select>
+          <select
             value={format}
             onChange={(e) =>
               setFormat(e.target.value as "json" | "xml" | "yaml" | "csv")
             }
-            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200"
+            className="px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-10"
           >
             <option value="json">JSON</option>
             <option value="xml">XML</option>
@@ -316,13 +437,23 @@ const Editor: React.FC<EditorProps> = ({ isDarkMode }) => {
         <div className="col-span-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900  h-full overflow-hidden">
           <div className="h-full w-full relative">
             {graphData ? (
-              <div className="absolute inset-0">
-                <JSONVisualizer
-                  key={isDarkMode ? "dark" : "light"}
-                  data={graphData}
-                  isDarkMode={isDarkMode}
-                />
-              </div>
+              activeView === "graph" ? (
+                <div className="absolute inset-0">
+                  <JSONVisualizer
+                    key={isDarkMode ? "dark" : "light"}
+                    data={graphData}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0">
+                  <TreeVisualizer
+                    key={isDarkMode ? "dark" : "light"}
+                    data={graphData}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              )
             ) : (
               <div className="h-full w-full flex items-center justify-center text-gray-500 dark:text-gray-400">
                 Visualization will appear here

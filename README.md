@@ -1,3 +1,18 @@
+# Todo
+
+- [x] Make all the State global
+- [x] correct Load from editor error
+- [x] Correct editor error handling
+- [x] Add a option to switch between tree and graph, make it switch between them
+- [ ] parse for xml, yml, csv
+- [ ] add tree and graph option for that also
+- [ ] add a button to create visualization
+- [ ] make the architecture better to handle
+- [ ] store dark or light mode in global state, and make it presist
+- [ ] make copy better (indicate copy)
+- [ ] can i make wasm global for improved performance
+- [ ] can we store the zoom out position of the graph
+- [ ] export visualization as png 
 
 
 # JSON Visualizer and Validator
@@ -7,17 +22,20 @@ A powerful web-based tool for visualizing, validating, and formatting JSON data 
 ## Features
 
 - **JSON Editor**
+
   - Real-time JSON validation
   - Syntax highlighting
   - Auto-formatting on entry
   - Error detection and highlighting
 
 - **Multiple Input Methods**
+
   - Direct text input
   - File upload support
   - URL import functionality
 
 - **Visualization Options**
+
   - Interactive tree view
   - Dynamic graph visualization
   - Collapsible nodes
@@ -32,17 +50,20 @@ A powerful web-based tool for visualizing, validating, and formatting JSON data 
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/json-visualizer.git
 cd json-visualizer
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -50,16 +71,19 @@ npm run dev
 ## Usage
 
 1. **Input JSON Data**
+
    - Type or paste JSON directly into the editor
    - Upload a JSON file using the file picker
    - Enter a URL containing JSON data
 
 2. **Validate and Format**
+
    - JSON is automatically validated as you type
    - Press Enter or click the Format button to beautify the JSON
    - Error messages appear below the editor if JSON is invalid
 
 3. **Visualize**
+
    - Switch between Tree and Graph views using the toggle buttons
    - Click nodes to expand/collapse sections
    - Use mouse wheel to zoom in/out
@@ -90,6 +114,7 @@ npm run dev
 ## Development
 
 ### Project Structure
+
 ```
 json-visualizer/
 ├── src/
@@ -104,6 +129,7 @@ json-visualizer/
 ```
 
 ### Running Tests
+
 ```bash
 npm run test
 ```

@@ -3,78 +3,64 @@
 use serde_wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use js_sys::JSON;
 use std::collections::HashMap;
 
-/// A simple node structure which represents a tree suitable for many D3.js layouts.
-#[derive(Serialize, Deserialize)]
-pub struct Node {
-    /// The name or key of this JSON node.
-    pub name: String,
-    /// The child nodes; used if the JSON element is an object or an array.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub children: Option<Vec<Node>>,
-    /// The actual JSON value for leaf nodes (if any).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<Value>,
-}
-
-/// Recursively converts a serde_json::Value into a Node tree.
-/// The optional `key` helps preserve the original keys. If `None` it falls back to a default.
-fn json_to_tree(key: Option<String>, data: &Value) -> Node {
-    match data {
-        // When the JSON data is an object, iterate over its keys and values.
-        Value::Object(map) => {
-            let children = map
-                .iter()
-                .map(|(k, v)| json_to_tree(Some(k.clone()), v))
-                .collect();
-            Node {
-                name: key.unwrap_or_else(|| "root".into()),
-                children: Some(children),
-                value: None,
-            }
-        }
-
-        // When the data is an array, iterate over its elements.
-        Value::Array(arr) => {
-            let children = arr
-                .iter()
-                .enumerate()
-                .map(|(i, v)| json_to_tree(Some(i.to_string()), v))
-                .collect();
-            Node {
-                name: key.unwrap_or_else(|| "array".into()),
-                children: Some(children),
-                value: None,
-            }
-        }
-
-        // For primitives (string, number, bool, or null), store the value.
-        _ => Node {
-            name: key.unwrap_or_else(|| "value".into()),
-            children: None,
-            value: Some(data.clone()),
-        },
+#[wasm_bindgen]
+pub fn process_json_tree(json_str: &str) -> Result<String, JsValue> {
+    // Parse the JSON
+    let parsed = match serde_json::from_str::<Value>(json_str) {
+        Ok(v) => v,
+        Err(e) => return Err(JsValue::from_str(&format!("Failed to parse JSON: {}", e))),
+    };
+    
+    // Convert to D3.js friendly format
+    let tree = convert_to_d3_format(&parsed, "root");
+    
+    // Serialize back to JSON string
+    match serde_json::to_string(&tree) {
+        Ok(s) => Ok(s),
+        Err(e) => Err(JsValue::from_str(&format!("Failed to serialize result: {}", e))),
     }
 }
 
-/// The exported wasm function that processes JSON.
-/// It accepts a JSON string and returns a JsValue containing the tree structure.
-/// This tree structure should be simple enough to pass directly to d3.js for creating visualizations.
-#[wasm_bindgen]
-pub fn process_json_tree(json_data: &str) -> Result<JsValue, JsValue> {
-    // Parse the input JSON into a serde_json::Value.
-    let parsed: Value = serde_json::from_str(json_data)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    
-    // Convert the parsed JSON value into our tree structure.
-    let tree = json_to_tree(None, &parsed);
-    
-    // Convert the tree into a JsValue so we can send it back to JavaScript.
-    serde_wasm_bindgen::to_value(&tree)
-        .map_err(|e| JsValue::from_str(&e.to_string()))
+fn convert_to_d3_format(value: &Value, name: &str) -> Value {
+    match value {
+        Value::Object(obj) => {
+            let mut result = json!({
+                "name": name,
+                "children": []
+            });
+            
+            let children = obj.iter()
+                .map(|(k, v)| convert_to_d3_format(v, k))
+                .collect::<Vec<Value>>();
+            
+            result["children"] = json!(children);
+            result
+        },
+        Value::Array(arr) => {
+            let mut result = json!({
+                "name": name,
+                "children": []
+            });
+            
+            let children = arr.iter()
+                .enumerate()
+                .map(|(i, v)| convert_to_d3_format(v, &format!("{}[{}]", name, i)))
+                .collect::<Vec<Value>>();
+            
+            result["children"] = json!(children);
+            result
+        },
+        _ => {
+            json!({
+                "name": name,
+                "value": value.to_string()
+            })
+        }
+    }
 }
 
 

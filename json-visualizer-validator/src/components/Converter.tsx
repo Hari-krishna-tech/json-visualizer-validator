@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Copy } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
-import { useEditorStore } from "../store/editorStore";
+import { useEditorStore, useConverterStore } from "../store/editorStore";
 import * as wasmModule from "lib";
 
 interface WasmModule {
@@ -23,10 +23,20 @@ interface ConverterProps {
   isDarkMode: boolean;
 }
 const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
-  const [sourceContent, setSourceContent] = useState("");
+  const {
+    sourceContent,
+    setSourceContent,
+    targetContent,
+    setTargetContent,
+    sourceFormat,
+    setSourceFormat,
+    targetFormat,
+    setTargetFormat,
+  } = useConverterStore();
+  /*  const [sourceContent, setSourceContent] = useState("");
   const [targetContent, setTargetContent] = useState("");
   const [sourceFormat, setSourceFormat] = useState("json");
-  const [targetFormat, setTargetFormat] = useState("yaml");
+  const [targetFormat, setTargetFormat] = useState("yaml"); */
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isloading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +72,12 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
   const handleSourceFormatChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setSourceFormat(e.target.value);
+    setSourceFormat(e.target.value as "json" | "yaml" | "xml" | "csv");
   };
   const handleTargetFormatChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setTargetFormat(e.target.value);
+    setTargetFormat(e.target.value as "xml" | "json" | "yaml" | "csv");
   };
   const handleSourceContentChange = (value: string) => {
     setSourceContent(value); // Update the state with the new value
@@ -143,6 +153,7 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
 
   const loadFromEditor = () => {
     setSourceContent(globalContent);
+    handleSourceContentChange(globalContent);
   };
 
   const copyToClipboard = () => {
@@ -174,7 +185,13 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
             <select
               value={sourceFormat}
               onChange={handleSourceFormatChange}
-              className="flex-grow px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+              className="flex-grow px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-10"
             >
               <option value="json">JSON</option>
               <option value="yaml">YAML</option>
@@ -204,7 +221,13 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
           <select
             value={targetFormat}
             onChange={handleTargetFormatChange}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border-2 border-blue-500 
+            dark:border-blue-400 rounded-lg shadow-md text-gray-700 dark:text-gray-200 
+            font-medium transition-all duration-200 hover:border-blue-600 
+            focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 
+            cursor-pointer appearance-none min-w-[120px]
+            bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTUuMjkzIDcuMjkzYTEgMSAwIDAxMS40MTQgMEwxMCAxMC41ODZsNC4yOTMtMy4yOTNhMSAxIDAgMTExLjQxNCAxLjQxNGwtNSA1YTEgMSAwIDAxLTEuNDE0IDBsLTUtNWExIDEgMCAwMTAtMS40MTR6Ii8+PC9zdmc+')] 
+            bg-[length:1.5em_1.5em] bg-no-repeat bg-[right_0.5em_center] pr-10"
           >
             <option value="yaml">YAML</option>
             <option value="json">JSON</option>
@@ -235,74 +258,6 @@ const Converter: React.FC<ConverterProps> = ({ isDarkMode }) => {
         </div>
       </div>
     </div>
-    /*
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-          Format Converter
-        </h2>
-      </div>
-
-      <div className="grid grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-          <select
-            value={sourceFormat}
-            onChange={(e) => setSourceFormat(e.target.value)} 
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200">
-            <option value="json">JSON</option>
-            <option value="yaml">YAML</option>
-            <option value="xml">XML</option>
-            <option value="csv">CSV</option>
-          </select>
-          <button 
-            onClick={loadFromEditor}
-            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-            Load from Editor
-          </button>
-          </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
-          <MonacoEditor
-              height="100%"
-              language={sourceFormat === 'csv' ? 'plaintext' : sourceFormat}
-              value={sourceContent}
-              onChange={(value) => setSourceContent(value || '')}
-              theme={isDarkMode ? 'vs-dark' : 'vs'}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <select 
-            value={targetFormat}
-            onChange={(e) => setTargetFormat(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-200">
-            <option value="yaml">YAML</option>
-            <option value="json">JSON</option>
-            <option value="xml">XML</option>
-            <option value="csv">CSV</option>
-          </select>
-
-          <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 h-[500px]">
-            <div className="absolute top-4 right-4">
-              <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <Copy onClick={copyToClipboard} className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            <MonacoEditor
-              height="100%"
-              language={targetFormat === 'csv' ? 'plaintext' : targetFormat}
-              value={targetContent}
-              onChange={(value) => setTargetContent(value || '')}
-              theme={isDarkMode ? 'vs-dark' : 'vs'}
-              options={{ readOnly: true }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-    */
   );
 };
 

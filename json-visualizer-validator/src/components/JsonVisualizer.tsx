@@ -17,20 +17,20 @@ interface Link {
   target: string;
 }
 
-// interface GraphData {
-//   nodes: Node[];
-//   links: Link[];
-// }
-
 interface JSONVisualizerProps {
   data: any;
   isDarkMode: boolean;
 }
-
+const isGraphFormat = (data: any): boolean => {
+  return data?.nodes && data?.links;
+};
 const JSONVisualizer: React.FC<JSONVisualizerProps> = ({
   data,
   isDarkMode,
 }) => {
+  if (!isGraphFormat(data)) {
+    return <div className="text-red-500">Invalid data format</div>;
+  }
   const d3Container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

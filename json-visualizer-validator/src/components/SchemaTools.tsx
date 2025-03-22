@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 
 import { Copy } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
-import { useEditorStore } from "../store/editorStore";
+import { useEditorStore, useSchemaToolsStore } from "../store/editorStore";
 import * as wasmModule from "lib";
 
 interface SchemaToolsProps {
@@ -14,8 +14,10 @@ interface WasmModule {
 }
 
 const SchemaTools: React.FC<SchemaToolsProps> = ({ isDarkMode }) => {
-  const [sourceContent, setSourceContent] = useState("");
-  const [targetContent, setTargetContent] = useState("");
+  const { sourceContent, setSourceContent, targetContent, setTargetContent } =
+    useSchemaToolsStore();
+  // const [sourceContent, setSourceContent] = useState("");
+  // const [targetContent, setTargetContent] = useState("");
   const { content: globalContent } = useEditorStore();
   const [wasm, setWasm] = useState<WasmModule | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,7 @@ const SchemaTools: React.FC<SchemaToolsProps> = ({ isDarkMode }) => {
 
   const loadFromEditor = () => {
     setSourceContent(globalContent);
+    handleSourceContentChange(globalContent);
   };
 
   useEffect(() => {
