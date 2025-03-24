@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "wasm": "cd wasm-json-utils/lib && wasm-pack build --target web && cd ../../ && npm i wasm-json-utils/lib/pkg && npm run dev"
   },
   "dependencies": {
     "@monaco-editor/loader": "^1.3.2",

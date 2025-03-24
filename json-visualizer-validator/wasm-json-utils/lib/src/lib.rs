@@ -636,6 +636,441 @@ fn parse_xml(xml_str: &str) -> Result<XmlNode, String> {
     parse_element(content)
 }
 
+
+fn parse_element(s: &str) -> Result<XmlNode, String> {
+    let s = s.trim();
+    if !s.starts_with('<') {
+        return Err("Invalid XML: expected '<' at the beginning".to_string());
+    }
+
+    // Get the opening tag
+    let open_tag_end = find_unescaped_gt(s)
+        .ok_or_else(|| "Missing '>' in opening tag".to_string())?;
+    let opening_tag = &s[..open_tag_end + 1];
+
+    // Check whether the tag is self-closing.
+    let is_self_closing = opening_tag.trim_end().ends_with("/>");
+
+    // Extract the tag name.
+    let tag_name = {
+        // Strip off the leading '<' and trailing '>' (or '/>')
+        let inside = &opening_tag[1..opening_tag.len() - 1];
+        let inside = inside.trim();
+        let end = inside.find(|c: char| c.is_whitespace() || c == '/' || c == '>')
+            .unwrap_or(inside.len());
+        inside[..end].to_string()
+    };
+
+    // Extract the attribute fragment (if any)
+    let attr_string = {
+        let inside = &opening_tag[1..opening_tag.len() - 1];
+        let inside = inside.trim();
+        let tag_name_len = tag_name.len();
+        if inside.len() > tag_name_len {
+            let rest = inside[tag_name_len..].trim();
+            // Remove a trailing '/' if present.
+            let rest = if rest.ends_with("/") {
+                &rest[..rest.len() - 1]
+            } else {
+                rest
+            };
+            rest
+        } else {
+            ""
+        }
+    };
+
+    let attributes = parse_attributes(attr_string);
+
+    let mut node = XmlNode {
+        name: tag_name,
+        attributes,
+        text: String::new(),
+        children: Vec::new(),
+    };
+
+    // For self-closing tag, we can return immediately.
+    if is_self_closing {
+        return Ok(node);
+    }
+
+    // Locate the closing tag.
+    let closing_tag = format!("</{}>", node.name);
+    let closing_tag_index = s.rfind(&closing_tag)
+        .ok_or_else(|| format!("Closing tag not found for {}", node.name))?;
+    // EVERYTHING between the opening and closing tag is the element content.
+    let content = s[open_tag_end + 1..closing_tag_index].trim();
+
+    // Parse any child elements and text.
+    let mut remaining = content;
+    while let Some(child_start) = remaining.find('<') {
+        // Process text that might come before this child element.
+        let text_before = remaining[..child_start].trim();
+        if !text_before.is_empty() {
+            node.text.push_str(text_before);
+        }
+
+        // If a closing tag is encountered, break out.
+        if remaining[child_start..].starts_with("</") {
+            break;
+        }
+
+        // Get the full child element (handling self-closing and nested tags)
+        let child_fragment = &remaining[child_start..];
+        let child_length = find_child_end(child_fragment)?;
+        let child_str = &child_fragment[..child_length];
+        let child_element = parse_element(child_str)?;
+        node.children.push(child_element);
+
+        // Update the slice.
+        remaining = &remaining[child_start + child_length..];
+    }
+
+    // Append any trailing text.
+    let trailing = remaining.trim();
+    if !trailing.is_empty() {
+        node.text.push_str(trailing);
+    }
+    Ok(node)
+}
+
+
+/// Revised version that only changes depth when the candidate tag’s name
+/// matches the original element’s name.
+fn find_child_end(s: &str) -> Result<usize, String> {
+    // Find the end of the opening tag.
+    let open_tag_end = find_unescaped_gt(s)
+        .ok_or_else(|| "Missing '>' in child element".to_string())?;
+    let opening_tag = &s[..open_tag_end + 1];
+    if opening_tag.trim_end().ends_with("/>") {
+        return Ok(open_tag_end + 1);
+    }
+    let tag_name = extract_tag_name(opening_tag);
+    let closing_tag = format!("</{}>", tag_name);
+    let mut depth = 1;
+    let mut index = open_tag_end + 1;
+    while index < s.len() {
+        if let Some(pos) = s[index..].find('<') {
+            let pos = index + pos;
+            if s[pos..].starts_with(&closing_tag) {
+                // Found a closing tag for the current element.
+                depth -= 1;
+                if depth == 0 {
+                    if let Some(gt_pos) = find_unescaped_gt(&s[pos..]) {
+                        return Ok(pos + gt_pos + 1);
+                    } else {
+                        return Err(format!(
+                            "Missing '>' for closing tag of {}",
+                            tag_name
+                        ));
+                    }
+                }
+                if let Some(gt_pos) = find_unescaped_gt(&s[pos..]) {
+                    index = pos + gt_pos + 1;
+                    continue;
+                } else {
+                    return Err(format!(
+                        "Missing '>' after closing tag for {}",
+                        tag_name
+                    ));
+                }
+            } else {
+                // Not our closing tag.
+                // If the tag is an opening tag,
+                // check if its name matches our element.
+                if !s[pos..].starts_with("</") {
+                    if let Some(candidate_end) = find_unescaped_gt(&s[pos..]) {
+                        let candidate = &s[pos..pos + candidate_end + 1];
+                        let candidate_name = extract_tag_name(candidate);
+                        if candidate_name == tag_name {
+                            depth += 1;
+                        }
+                        index = pos + candidate_end + 1;
+                        continue;
+                    } else {
+                        return Err("Missing '>' in nested element".to_string());
+                    }
+                } else {
+                    // A closing tag for a different element: simply skip over it.
+                    if let Some(gt_pos) = find_unescaped_gt(&s[pos..]) {
+                        index = pos + gt_pos + 1;
+                        continue;
+                    } else {
+                        return Err("Missing '>' in closing tag".to_string());
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
+    Err(format!("Closing tag not found for {}", tag_name))
+}
+
+
+
+fn find_unescaped_gt(s: &str) -> Option<usize> {
+    let mut in_quote = false;
+    let mut quote_char = ' ';
+    for (i, c) in s.char_indices() {
+        if c == '"' || c == '\'' {
+            if !in_quote {
+                in_quote = true;
+                quote_char = c;
+            } else if c == quote_char {
+                in_quote = false;
+            }
+        }
+        if c == '>' && !in_quote {
+            return Some(i);
+        }
+    }
+    None
+}
+
+/// Extracts the tag name from an opening tag.
+fn extract_tag_name(tag: &str) -> String {
+    // Assumes tag starts with '<'
+    let trimmed = tag.trim_start_matches('<');
+    let mut end = 0;
+    for c in trimmed.chars() {
+        if c.is_whitespace() || c == '>' || c == '/' {
+            break;
+        }
+        end += 1;
+    }
+    trimmed[..end].to_string()
+}
+
+/*
+
+fn parse_element(s: &str) -> Result<XmlNode, String> {
+    // Check for empty or invalid input
+    if s.is_empty() {
+        return Err("Empty XML string".to_string());
+    }
+
+    // Start tag must begin with '<'
+    if !s.starts_with('<') {
+        return Err("Invalid XML: expected '<'".to_string());
+    }
+
+    // Find the end of the opening tag (extract the tag name)
+    let mut i = 1;
+    while i < s.len()
+        && !s.chars().nth(i).unwrap_or(' ').is_whitespace()
+        && s.chars().nth(i).unwrap_or(' ') != '>'
+    {
+        i += 1;
+    }
+    let tag_name = &s[1..i];
+
+    // Find where the opening tag ends (handle quotes)
+    let mut j = i;
+    let mut in_quote = false;
+    let mut quote_char = ' ';
+    while j < s.len() {
+        let c = s.chars().nth(j).unwrap_or(' ');
+        if c == '"' || c == '\'' {
+            if !in_quote {
+                in_quote = true;
+                quote_char = c;
+            } else if c == quote_char {
+                in_quote = false;
+            }
+        } else if c == '>' && !in_quote {
+            break;
+        }
+        j += 1;
+    }
+    if j >= s.len() {
+        return Err("Invalid XML: opening tag not closed".to_string());
+    }
+
+    // Get the attribute string and handle self-closing tag properly.
+    // Note: raw_attr_str might contain a trailing "/" (with or without whitespace)
+    let raw_attr_str = &s[i..j];
+    let trimmed_attr = raw_attr_str.trim_end();
+    let is_self_closing = trimmed_attr.ends_with('/');
+    // If self-closing, remove the trailing '/' from the attribute string
+    let attr_str = if is_self_closing {
+        &trimmed_attr[..trimmed_attr.len() - 1]
+    } else {
+        raw_attr_str
+    };
+
+    // Parse attributes from the (possibly cleaned) attribute string.
+    let attributes = parse_attributes(attr_str);
+
+    let mut node = XmlNode {
+        name: tag_name.to_string(),
+        attributes,
+        text: String::new(),
+        children: Vec::new(),
+    };
+
+    // If the tag is self closing, return immediately.
+    if is_self_closing {
+        return Ok(node);
+    }
+
+    // Otherwise, find the matching closing tag.
+    let content_start = j + 1;
+    let closing_tag = format!("</{}>", tag_name);
+    if let Some(content_end) = s[content_start..].find(&closing_tag) {
+        let content = &s[content_start..content_start + content_end];
+
+        // Parse child elements and text content.
+        let mut remaining = content;
+        while let Some(child_start) = remaining.find('<') {
+            // Handle skipping special elements (comments, CDATA, PI)
+            if remaining[child_start..].starts_with("<!--")
+                || remaining[child_start..].starts_with("<![CDATA[")
+                || remaining[child_start..].starts_with("<?")
+            {
+                let skip_marker = if remaining[child_start..].starts_with("<!--") {
+                    "-->"
+                } else if remaining[child_start..].starts_with("<![CDATA[") {
+                    "]]>"
+                } else {
+                    "?>"
+                };
+
+                if let Some(end_pos) = remaining[child_start..].find(skip_marker) {
+                    let end = child_start + end_pos + skip_marker.len();
+                    remaining = &remaining[end..];
+                    continue;
+                } else {
+                    return Err("Unclosed special element".to_string());
+                }
+            }
+
+            // Extract text content before the child element.
+            let text_content = remaining[..child_start].trim();
+            if !text_content.is_empty() {
+                node.text.push_str(text_content);
+            }
+
+            // If it’s a closing tag, let the parent handle it.
+            if remaining[child_start + 1..].starts_with('/') {
+                break;
+            }
+
+            // Find the end of this child element, accounting for nested tags.
+            let mut child_xml = &remaining[child_start..];
+            let mut depth = 1;
+            let mut pos = 1;
+            while depth > 0 && pos < child_xml.len() {
+                if child_xml[pos..].starts_with('<') {
+                    if child_xml[pos + 1..].starts_with('/') {
+                        if let Some(close_end) = child_xml[pos..].find('>') {
+                            depth -= 1;
+                            pos += close_end + 1;
+                            continue;
+                        }
+                    } else if !child_xml[pos..].starts_with("<!--")
+                        && !child_xml[pos..].starts_with("<![CDATA[")
+                        && !child_xml[pos..].starts_with("<?")
+                    {
+                        depth += 1;
+                    }
+                }
+                pos += 1;
+            }
+
+            // Recursively parse the child element.
+            let child_element = parse_element(&child_xml[..pos])?;
+            node.children.push(child_element);
+            remaining = &remaining[child_start + pos..];
+        }
+
+        // Add any remaining text.
+        let final_text = remaining.trim();
+        if !final_text.is_empty() {
+            node.text.push_str(final_text);
+        }
+        Ok(node)
+    } else {
+        Err(format!("Closing tag not found for {}", tag_name))
+    }
+}
+*/
+
+/*
+fn parse_element(xml: &str) -> Result<XmlNode, String> {
+    // Check that the element starts with '<'
+    if !xml.starts_with('<') {
+        return Err("Expected '<' at the beginning of an element".to_string());
+    }
+
+    // Find the end of the start tag
+    let start_tag_end = xml.find('>').ok_or("Missing '>' in element")?;
+    let mut tag_content = &xml[1..start_tag_end]; // everything inside < ... >
+
+    // Check if it is a self-closing tag
+    let is_self_closing = tag_content.ends_with('/');
+    if is_self_closing {
+        // Remove the trailing '/' and trim whitespace
+        tag_content = tag_content[..tag_content.len() - 1].trim();
+    }
+
+    // Assume the first token is the tag name and the rest are attributes (this is a
+    // simplified example)
+    let mut parts = tag_content.split_whitespace();
+    let tag_name = parts
+        .next()
+        .ok_or("Tag name is missing".to_string())?
+        .to_string();
+
+    // Parse attributes if any (this is very basic and doesn't cover all XML attribute syntax)
+    let mut attributes = std::collections::HashMap::new();
+    for attr in parts {
+        let mut split = attr.splitn(2, '=');
+        let key = split
+            .next()
+            .ok_or("Malformed attribute: key missing".to_string())?
+            .to_string();
+        let value = split
+            .next()
+            .ok_or("Malformed attribute: value missing".to_string())?
+            .trim_matches('"')
+            .to_string();
+        attributes.insert(key, value);
+    }
+
+    // Create the basic XmlNode
+    let mut node = XmlNode {
+        name: tag_name,
+        attributes,
+        text: String::new(),
+        children: Vec::new(),
+    };
+
+    // If self-closing, there's no more content to process
+    if is_self_closing {
+        return Ok(node);
+    }
+
+    // Otherwise, find the corresponding closing tag and parse inner content
+    // This is simplified logic, real XML parsing will be more robust.
+    let closing_tag = format!("</{}>", node.name);
+    let closing_pos = xml
+        .find(&closing_tag)
+        .ok_or("Missing closing tag".to_string())?;
+
+    // Extract inner content between the start tag and the closing tag
+    let inner_start = start_tag_end + 1;
+    let inner_content = &xml[inner_start..closing_pos];
+
+    // (Optional) Parse text content and child nodes from inner_content.
+    // For simplicity, let's assume here it is plain text:
+    node.text = inner_content.trim().to_string();
+
+    // In a full implementation, you would recursively find and parse child elements.
+    Ok(node)
+}*/
+
+/*
 fn parse_element(s: &str) -> Result<XmlNode, String> {
     // Check for empty or invalid input
     if s.is_empty() {
@@ -789,7 +1224,7 @@ fn parse_element(s: &str) -> Result<XmlNode, String> {
         Err(format!("Closing tag not found for {}", tag_name))
     }
 }
-
+*/
 fn parse_attributes(s: &str) -> HashMap<String, String> {
     let mut attributes = HashMap::new();
     let mut i = 0;
@@ -851,11 +1286,8 @@ fn parse_attributes(s: &str) -> HashMap<String, String> {
 // Convert XML node to JSON string
 fn xml_node_to_json(node: &XmlNode) -> Result<String, String> {
     let mut result = String::from("{");
-    
-    // Add tag name
-    result.push_str(&format!("\"_name\": \"{}\"", node.name));
-    
-    // Add attributes
+    result.push_str(&format!("\"_name\": \"{}\"", escape_json_string(&node.name)));
+
     if !node.attributes.is_empty() {
         result.push_str(", \"_attributes\": {");
         let mut first = true;
@@ -863,36 +1295,45 @@ fn xml_node_to_json(node: &XmlNode) -> Result<String, String> {
             if !first {
                 result.push_str(", ");
             }
-            result.push_str(&format!("\"{}\": \"{}\"", key, escape_json_string(value)));
+            result.push_str(&format!(
+                "\"{}\": \"{}\"",
+                escape_json_string(key),
+                escape_json_string(value)
+            ));
             first = false;
         }
         result.push_str("}");
     }
-    
-    // Add text content if any
+
     if !node.text.is_empty() {
-        result.push_str(&format!(", \"_text\": \"{}\"", escape_json_string(&node.text)));
+        result.push_str(&format!(
+            ", \"_text\": \"{}\"",
+            escape_json_string(&node.text)
+        ));
     }
-    
-    // Add children
+
     if !node.children.is_empty() {
-        // Group children by tag name
-        let mut child_map: HashMap<String, Vec<&XmlNode>> = HashMap::new();
+        // Group children by name to produce arrays if necessary.
+        let mut child_groups: HashMap<String, Vec<&XmlNode>> = HashMap::new();
         for child in &node.children {
-            child_map.entry(child.name.clone())
+            child_groups
+                .entry(child.name.clone())
                 .or_insert_with(Vec::new)
                 .push(child);
         }
-        
-        for (child_name, children) in child_map {
+        for (child_name, children) in child_groups {
             if children.len() == 1 {
-                // Single child
-                result.push_str(&format!(", \"{}\": ", child_name));
+                result.push_str(&format!(
+                    ", \"{}\": ",
+                    escape_json_string(&child_name)
+                ));
                 let child_json = xml_node_to_json(children[0])?;
                 result.push_str(&child_json);
             } else {
-                // Multiple children with same name become an array
-                result.push_str(&format!(", \"{}\": [", child_name));
+                result.push_str(&format!(
+                    ", \"{}\": [",
+                    escape_json_string(&child_name)
+                ));
                 for (i, child) in children.iter().enumerate() {
                     if i > 0 {
                         result.push_str(", ");
@@ -904,11 +1345,10 @@ fn xml_node_to_json(node: &XmlNode) -> Result<String, String> {
             }
         }
     }
-    
+
     result.push_str("}");
     Ok(result)
 }
-
 // Convert XML node to YAML string
 fn xml_node_to_yaml(node: &XmlNode) -> Result<String, String> {
     // We'll implement a simple YAML serializer

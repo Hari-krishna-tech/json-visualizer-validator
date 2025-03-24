@@ -29,6 +29,8 @@ export function xml_to_csv(xml_str: string): string;
 export function csv_to_json(csv_str: string): string;
 export function csv_to_yaml(csv_str: string): string;
 export function csv_to_xml(csv_str: string): string;
+export function process_json_tree(json_str: string): string;
+export function process_json(json_str: string): string;
 /**
  * Exposed WebAssembly function for processing YAML into a graph format.
  *
@@ -59,16 +61,6 @@ export function process_yaml_graph(yaml_str: string): string;
  */
 export function process_yaml_tree(yaml_str: string): string;
 /**
- * Exports a function to process XML into the graph format.
- * Returns a JSON string representing the graph or an error if the XML is invalid.
- */
-export function process_xml_graph(xml: string): string;
-/**
- * Exports a function to process XML into the tree format.
- * Returns a JSON string representing the tree or an error if the XML is invalid.
- */
-export function process_xml_tree(xml: string): string;
-/**
  * Process the CSV string and return a JSON string for graph visualization.
  *
  * This function:
@@ -84,8 +76,16 @@ export function process_csv_graph(csv: string): string;
  * it builds a nested tree structure instead.
  */
 export function process_csv_tree(csv: string): string;
-export function process_json_tree(json_str: string): string;
-export function process_json(json_str: string): string;
+/**
+ * Exports a function to process XML into the graph format.
+ * Returns a JSON string representing the graph or an error if the XML is invalid.
+ */
+export function process_xml_graph(xml: string): string;
+/**
+ * Exports a function to process XML into the tree format.
+ * Returns a JSON string representing the tree or an error if the XML is invalid.
+ */
+export function process_xml_tree(xml: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -120,14 +120,14 @@ export interface InitOutput {
   readonly csv_to_json: (a: number, b: number) => [number, number, number, number];
   readonly csv_to_yaml: (a: number, b: number) => [number, number, number, number];
   readonly csv_to_xml: (a: number, b: number) => [number, number, number, number];
-  readonly process_yaml_graph: (a: number, b: number) => [number, number, number, number];
-  readonly process_yaml_tree: (a: number, b: number) => [number, number, number, number];
-  readonly process_xml_graph: (a: number, b: number) => [number, number, number, number];
-  readonly process_xml_tree: (a: number, b: number) => [number, number, number, number];
-  readonly process_csv_graph: (a: number, b: number) => [number, number, number, number];
-  readonly process_csv_tree: (a: number, b: number) => [number, number, number, number];
   readonly process_json_tree: (a: number, b: number) => [number, number, number, number];
   readonly process_json: (a: number, b: number) => [number, number, number, number];
+  readonly process_yaml_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_yaml_tree: (a: number, b: number) => [number, number, number, number];
+  readonly process_csv_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_csv_tree: (a: number, b: number) => [number, number, number, number];
+  readonly process_xml_graph: (a: number, b: number) => [number, number, number, number];
+  readonly process_xml_tree: (a: number, b: number) => [number, number, number, number];
   readonly __wbindgen_export_0: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

@@ -805,6 +805,56 @@ export function csv_to_xml(csv_str) {
 }
 
 /**
+ * @param {string} json_str
+ * @returns {string}
+ */
+export function process_json_tree(json_str) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.process_json_tree(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * @param {string} json_str
+ * @returns {string}
+ */
+export function process_json(json_str) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.process_json(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Exposed WebAssembly function for processing YAML into a graph format.
  *
  * It parses the YAML string and then recursively builds a list of nodes and
@@ -863,60 +913,6 @@ export function process_yaml_tree(yaml_str) {
         const ptr0 = passStringToWasm0(yaml_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.process_yaml_tree(ptr0, len0);
-        var ptr2 = ret[0];
-        var len2 = ret[1];
-        if (ret[3]) {
-            ptr2 = 0; len2 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred3_0 = ptr2;
-        deferred3_1 = len2;
-        return getStringFromWasm0(ptr2, len2);
-    } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
-    }
-}
-
-/**
- * Exports a function to process XML into the graph format.
- * Returns a JSON string representing the graph or an error if the XML is invalid.
- * @param {string} xml
- * @returns {string}
- */
-export function process_xml_graph(xml) {
-    let deferred3_0;
-    let deferred3_1;
-    try {
-        const ptr0 = passStringToWasm0(xml, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.process_xml_graph(ptr0, len0);
-        var ptr2 = ret[0];
-        var len2 = ret[1];
-        if (ret[3]) {
-            ptr2 = 0; len2 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred3_0 = ptr2;
-        deferred3_1 = len2;
-        return getStringFromWasm0(ptr2, len2);
-    } finally {
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
-    }
-}
-
-/**
- * Exports a function to process XML into the tree format.
- * Returns a JSON string representing the tree or an error if the XML is invalid.
- * @param {string} xml
- * @returns {string}
- */
-export function process_xml_tree(xml) {
-    let deferred3_0;
-    let deferred3_1;
-    try {
-        const ptr0 = passStringToWasm0(xml, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.process_xml_tree(ptr0, len0);
         var ptr2 = ret[0];
         var len2 = ret[1];
         if (ret[3]) {
@@ -992,16 +988,18 @@ export function process_csv_tree(csv) {
 }
 
 /**
- * @param {string} json_str
+ * Exports a function to process XML into the graph format.
+ * Returns a JSON string representing the graph or an error if the XML is invalid.
+ * @param {string} xml
  * @returns {string}
  */
-export function process_json_tree(json_str) {
+export function process_xml_graph(xml) {
     let deferred3_0;
     let deferred3_1;
     try {
-        const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passStringToWasm0(xml, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.process_json_tree(ptr0, len0);
+        const ret = wasm.process_xml_graph(ptr0, len0);
         var ptr2 = ret[0];
         var len2 = ret[1];
         if (ret[3]) {
@@ -1017,16 +1015,18 @@ export function process_json_tree(json_str) {
 }
 
 /**
- * @param {string} json_str
+ * Exports a function to process XML into the tree format.
+ * Returns a JSON string representing the tree or an error if the XML is invalid.
+ * @param {string} xml
  * @returns {string}
  */
-export function process_json(json_str) {
+export function process_xml_tree(xml) {
     let deferred3_0;
     let deferred3_1;
     try {
-        const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passStringToWasm0(xml, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.process_json(ptr0, len0);
+        const ret = wasm.process_xml_tree(ptr0, len0);
         var ptr2 = ret[0];
         var len2 = ret[1];
         if (ret[3]) {

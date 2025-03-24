@@ -14,6 +14,8 @@
 - [ ] can we store the zoom out position of the graph
 - [ ] export visualization as png
 - [ ] Schema generation should return field in order given rather than alphabettical order
+- [ ] app failing for the self closing xml tags
+
 
 
 # JSON Visualizer and Validator
