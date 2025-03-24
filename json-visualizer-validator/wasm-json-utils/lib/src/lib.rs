@@ -568,14 +568,32 @@ struct XmlNode {
 // XML to JSON conversion
 #[wasm_bindgen]
 pub fn xml_to_json(xml_str: &str) -> Result<String, JsValue> {
-    let parsed = parse_xml(xml_str)
-        .map_err(|e| JsValue::from_str(&e))?;
+    let parsed = parse_xml(xml_str).map_err(|e| JsValue::from_str(&e))?;
     
     let json_string = xml_node_to_json(&parsed)
         .map_err(|e| JsValue::from_str(&e))?;
     
-    Ok(json_string)
+    // Convert the compact JSON string into a serde_json::Value
+    let json_value: serde_json::Value = serde_json::from_str(&json_string)
+        .map_err(|e| JsValue::from_str(&format!("JSON parsing error: {}", e)))?;
+    
+    // Pretty-print the JSON
+    let pretty_json = serde_json::to_string_pretty(&json_value)
+        .map_err(|e| JsValue::from_str(&format!("JSON serializing error: {}", e)))?;
+    
+    Ok(pretty_json)
 }
+
+// #[wasm_bindgen]
+// pub fn xml_to_json(xml_str: &str) -> Result<String, JsValue> {
+//     let parsed = parse_xml(xml_str)
+//         .map_err(|e| JsValue::from_str(&e))?;
+    
+//     let json_string = xml_node_to_json(&parsed)
+//         .map_err(|e| JsValue::from_str(&e))?;
+    
+//     Ok(json_string)
+// }
 
 // XML to YAML conversion
 #[wasm_bindgen]
