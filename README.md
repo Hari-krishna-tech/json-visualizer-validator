@@ -13,6 +13,8 @@
 - [ ] can i make wasm global for improved performance
 - [ ] can we store the zoom out position of the graph
 - [ ] export visualization as png
+- [ ] Schema generation should return field in order given rather than alphabettical order
+
 
 # JSON Visualizer and Validator
 
